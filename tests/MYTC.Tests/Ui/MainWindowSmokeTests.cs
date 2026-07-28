@@ -52,6 +52,16 @@ public sealed class MainWindowSmokeTests
             {
                 var application = new MYTC.App.App();
                 application.InitializeComponent();
+                var eDriveIdentity = TaskbarIdentity.GetAppUserModelId(
+                    @"E:\port\MYTC\MYTC.exe");
+                Assert.Equal(
+                    eDriveIdentity,
+                    TaskbarIdentity.GetAppUserModelId(
+                        @"e:\PORT\mytc\mytc.exe"));
+                Assert.NotEqual(
+                    eDriveIdentity,
+                    TaskbarIdentity.GetAppUserModelId(
+                        @"F:\temp\mytc\MYTC.exe"));
                 var shortcutStore = new JsonShortcutStore(dataRoot);
                 var contextMenuStore = new JsonContextMenuStore(dataRoot);
                 var tabContextMenuStore =

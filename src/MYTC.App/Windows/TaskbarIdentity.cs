@@ -1,4 +1,7 @@
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Windows;
 using System.Windows.Interop;
 
@@ -6,7 +9,7 @@ namespace MYTC.App.Windows;
 
 public static class TaskbarIdentity
 {
-    public const string AppUserModelId = "AIDELL.MYTC.FileManager";
+    private const string AppUserModelIdPrefix = "AIDELL.MYTC.FileManager";
 
     private const ushort VtEmpty = 0;
     private const ushort VtLpWStr = 31;
@@ -28,7 +31,7 @@ public static class TaskbarIdentity
         try
         {
             return SetCurrentProcessExplicitAppUserModelID(
-                AppUserModelId) >= 0;
+                GetAppUserModelId()) >= 0;
         }
         catch (DllNotFoundException)
         {
@@ -58,10 +61,11 @@ public static class TaskbarIdentity
 
         try
         {
+            var appUserModelId = GetAppUserModelId(executablePath);
             return TrySetString(
                     propertyStore,
                     AppUserModelIdKey,
-                    AppUserModelId) &&
+                    appUserModelId) &&
                 TrySetString(
                     propertyStore,
                     RelaunchCommandKey,
@@ -106,6 +110,29 @@ public static class TaskbarIdentity
         {
             _ = Marshal.FinalReleaseComObject(propertyStore);
         }
+    }
+
+    public static string GetAppUserModelId(string? executablePath = null)
+    {
+        var path = executablePath;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            path = Environment.ProcessPath ?? AppContext.BaseDirectory;
+        }
+
+        try
+        {
+            path = Path.GetFullPath(path)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                .ToUpperInvariant();
+        }
+        catch
+        {
+            path = AppContext.BaseDirectory.ToUpperInvariant();
+        }
+
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(path));
+        return $"{AppUserModelIdPrefix}.{Convert.ToHexString(hash, 0, 8)}";
     }
 
     private static bool TryGetPropertyStore(

@@ -1,0 +1,189 @@
+using MYTC.Infrastructure.Shell;
+
+namespace MYTC.Maintenance;
+
+internal sealed class MaintenanceForm : Form
+{
+    private readonly string _installRoot = AppContext.BaseDirectory;
+    private readonly string _mytcPath;
+    private readonly string _maintenancePath;
+    private readonly ShellIntegrationService _shellIntegration = new();
+    private readonly Label _statusLabel;
+    private readonly Button _registerButton;
+    private readonly Button _restoreButton;
+
+    public MaintenanceForm()
+    {
+        _mytcPath = Path.Combine(_installRoot, "MYTC.exe");
+        _maintenancePath = Environment.ProcessPath
+            ?? Path.Combine(_installRoot, "MYTC.Maintenance.exe");
+
+        Text = "MYTC Windows 接管与恢复工具";
+        StartPosition = FormStartPosition.CenterScreen;
+        ClientSize = new Size(650, 330);
+        MinimumSize = new Size(650, 330);
+        MaximizeBox = false;
+        Font = new Font("Microsoft YaHei UI", 9F);
+
+        var title = new Label
+        {
+            AutoSize = true,
+            Font = new Font(Font, FontStyle.Bold),
+            Location = new Point(24, 22),
+            Text = "将 MYTC 设为普通文件夹、磁盘和 Win+E 的默认入口",
+        };
+        var explanation = new Label
+        {
+            AutoSize = false,
+            Location = new Point(24, 58),
+            Size = new Size(600, 76),
+            Text =
+                "此工具只修改当前 Windows 用户的文件夹打开规则，并启动一个轻量 Win+E 桥接程序。" +
+                "它不会替换 explorer.exe，也不会接管桌面、任务栏或登录外壳。\r\n\r\n" +
+                "程序应先放在固定的本机磁盘目录，例如 E:\\port\\MYTC；注册后不要移动该目录。",
+        };
+        var pathLabel = new Label
+        {
+            AutoSize = false,
+            Location = new Point(24, 143),
+            Size = new Size(600, 40),
+            Text = $"当前程序：{_mytcPath}",
+        };
+        _statusLabel = new Label
+        {
+            AutoSize = false,
+            BorderStyle = BorderStyle.FixedSingle,
+            Location = new Point(24, 188),
+            Padding = new Padding(8),
+            Size = new Size(600, 45),
+        };
+        _registerButton = new Button
+        {
+            Location = new Point(24, 252),
+            Size = new Size(245, 42),
+            Text = "注册为默认文件夹程序（含 Win+E）",
+        };
+        _restoreButton = new Button
+        {
+            Location = new Point(285, 252),
+            Size = new Size(210, 42),
+            Text = "恢复 Windows 资源管理器",
+        };
+        var closeButton = new Button
+        {
+            Location = new Point(511, 252),
+            Size = new Size(113, 42),
+            Text = "关闭",
+        };
+
+        _registerButton.Click += (_, _) => Register();
+        _restoreButton.Click += (_, _) => Restore();
+        closeButton.Click += (_, _) => Close();
+        Controls.AddRange(
+        [
+            title,
+            explanation,
+            pathLabel,
+            _statusLabel,
+            _registerButton,
+            _restoreButton,
+            closeButton,
+        ]);
+        Shown += (_, _) => RefreshStatus();
+    }
+
+    private void Register()
+    {
+        var confirmation = MessageBox.Show(
+            this,
+            "确认让 MYTC 接管普通文件夹、磁盘双击和 Win+E 吗？\n\n" +
+            "如果之后不满意，重新运行本工具并点击“恢复 Windows 资源管理器”即可。",
+            "确认 Windows 接管",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question,
+            MessageBoxDefaultButton.Button2);
+        if (confirmation != DialogResult.Yes)
+        {
+            return;
+        }
+
+        RunAction(
+            () => _shellIntegration.Register(
+                _mytcPath,
+                _maintenancePath),
+            "注册完成。Win+E 和普通文件夹将交给 MYTC。");
+    }
+
+    private void Restore()
+    {
+        var confirmation = MessageBox.Show(
+            this,
+            "确认恢复 Windows 资源管理器为普通文件夹、磁盘和 Win+E 的默认入口吗？",
+            "确认恢复",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question,
+            MessageBoxDefaultButton.Button2);
+        if (confirmation != DialogResult.Yes)
+        {
+            return;
+        }
+
+        RunAction(
+            () =>
+            {
+                WinEBridge.SignalExit();
+                _shellIntegration.Restore();
+            },
+            "已恢复 Windows 资源管理器。");
+    }
+
+    private void RunAction(Action action, string successMessage)
+    {
+        try
+        {
+            Enabled = false;
+            action();
+            MessageBox.Show(
+                this,
+                successMessage,
+                "MYTC 维护工具",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show(
+                this,
+                exception.Message,
+                "操作失败",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
+        finally
+        {
+            Enabled = true;
+            RefreshStatus();
+        }
+    }
+
+    private void RefreshStatus()
+    {
+        try
+        {
+            var status = _shellIntegration.GetStatus(
+                _mytcPath,
+                _maintenancePath);
+            _statusLabel.Text = $"当前状态：{status.Description}";
+            _registerButton.Enabled =
+                !(status.IsFolderDefault && status.IsWinEBridgeEnabled);
+            _restoreButton.Enabled =
+                status.IsFolderDefault || status.IsWinEBridgeEnabled;
+        }
+        catch (Exception exception)
+        {
+            _statusLabel.Text = $"无法读取状态：{exception.Message}";
+            _registerButton.Enabled = true;
+            _restoreButton.Enabled = true;
+        }
+    }
+}

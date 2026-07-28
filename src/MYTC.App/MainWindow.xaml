@@ -1,0 +1,285 @@
+<Window x:Class="MYTC.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:MYTC.App.Views"
+        Title="MYTC — 四窗格资源管理器"
+        Icon="Assets/mytc.ico"
+        Width="1440"
+        Height="900"
+        MinWidth="1000"
+        MinHeight="620"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource AppBackgroundBrush}"
+        PreviewKeyDown="OnWindowKeyDown"
+        PreviewKeyUp="OnWindowKeyUp"
+        Closing="OnWindowClosing">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="44" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="28" />
+        </Grid.RowDefinitions>
+
+        <Menu Grid.Row="0" Background="#F4F4F4">
+            <MenuItem Header="文件(_F)">
+                <MenuItem Header="新建文件夹"
+                          InputGestureText="F7"
+                          Click="OnCreateDirectoryClick" />
+                <Separator />
+                <MenuItem Header="载入所选工作区"
+                          Click="OnLoadWorkspaceClick" />
+                <MenuItem Header="保存工作区…"
+                          Click="OnSaveWorkspaceClick" />
+                <Separator />
+                <MenuItem Header="退出"
+                          Click="OnExitClick" />
+            </MenuItem>
+            <MenuItem Header="编辑(_E)">
+                <MenuItem Header="复制到目标窗格"
+                          InputGestureText="F5"
+                          Click="OnCopyToTargetClick" />
+                <MenuItem Header="移动到目标窗格"
+                          InputGestureText="F6"
+                          Click="OnMoveToTargetClick" />
+                <MenuItem Header="重命名"
+                          InputGestureText="F2"
+                          Click="OnRenameClick" />
+                <Separator />
+                <MenuItem Header="复制"
+                          InputGestureText="Ctrl+C"
+                          Click="OnCopyClipboardClick" />
+                <MenuItem Header="剪切"
+                          InputGestureText="Ctrl+X"
+                          Click="OnCutClipboardClick" />
+                <MenuItem Header="粘贴"
+                          InputGestureText="Ctrl+V"
+                          Click="OnPasteClipboardClick" />
+                <MenuItem Header="复制完整路径"
+                          Click="OnCopyFullPathClick" />
+                <Separator />
+                <MenuItem Header="移到回收站"
+                          InputGestureText="Del / F8 / Ctrl+D"
+                          Click="OnDeleteClick" />
+                <MenuItem Header="撤销删除"
+                          Click="OnUndoDeleteClick" />
+                <MenuItem Header="永久删除"
+                          InputGestureText="Shift+Del"
+                          Click="OnPermanentDeleteClick" />
+            </MenuItem>
+            <MenuItem Header="查看(_V)">
+                <MenuItem Header="刷新当前窗格"
+                          Click="OnRefreshClick" />
+                <MenuItem Header="恢复四窗格"
+                          Click="OnRestoreLayoutClick" />
+                <Separator />
+                <MenuItem x:Name="OperationToolbarMenuItem"
+                          Header="操作工具栏"
+                          IsCheckable="True"
+                          IsChecked="False"
+                          Click="OnOperationToolbarToggleClick" />
+            </MenuItem>
+            <MenuItem Header="选项(_O)">
+                <MenuItem Header="全局设置…"
+                          Click="OnGlobalSettingsClick" />
+                <Separator />
+                <MenuItem Header="快捷键设置…"
+                          Click="OnShortcutSettingsClick" />
+                <MenuItem Header="右键菜单设置…"
+                          Click="OnContextMenuSettingsClick" />
+                <MenuItem Header="标签右键菜单设置…"
+                          Click="OnTabContextMenuSettingsClick" />
+                <Separator />
+                <MenuItem Header="Windows 默认文件夹接管与恢复…"
+                          Click="OnShellIntegrationClick" />
+                <MenuItem Header="从升级包升级…"
+                          Click="OnInstallUpdateClick" />
+            </MenuItem>
+            <MenuItem Header="信息(_I)">
+                <MenuItem Header="关于 MYTC"
+                          Click="OnAboutClick" />
+            </MenuItem>
+        </Menu>
+
+        <Border Grid.Row="1" Background="#18212F">
+            <Grid Margin="10,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="24" Height="24" CornerRadius="4" Background="{StaticResource ActiveBrush}">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Foreground="White"
+                                   FontWeight="Bold"
+                                   Text="4" />
+                    </Border>
+                    <TextBlock Margin="8,0,20,0"
+                               VerticalAlignment="Center"
+                               Foreground="White"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               Text="MYTC" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Margin="0,0,7,0" VerticalAlignment="Center" Foreground="#C7D0DD" Text="工作区" />
+                    <ComboBox Width="150"
+                              ItemsSource="{Binding WorkspaceNames}"
+                              SelectedItem="{Binding SelectedWorkspaceName, Mode=TwoWay}"
+                              ToolTip="已保存的工作区" />
+                    <Button Margin="7,0,0,0"
+                            Click="OnLoadWorkspaceClick"
+                            Content="载入" />
+                    <Button Margin="7,0,0,0"
+                            Click="OnSaveWorkspaceClick"
+                            Content="保存工作区" />
+                    <Button Margin="7,0,0,0"
+                            Content="恢复四窗格"
+                            Command="{Binding RestoreLayoutCommand}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Click="OnShortcutSettingsClick" Content="快捷键设置" />
+                    <Button Margin="7,0,0,0"
+                            Click="OnContextMenuSettingsClick"
+                            Content="右键菜单设置" />
+                    <Button Margin="7,0,0,0"
+                            Click="OnTabContextMenuSettingsClick"
+                            Content="标签菜单设置" />
+                    <TextBlock x:Name="VersionTextBlock"
+                               Margin="12,0,0,0"
+                               VerticalAlignment="Center"
+                               Foreground="#AAB6C6"
+                               FontSize="11"
+                               Text="v1.0.0" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border x:Name="OperationToolbarBorder"
+                Grid.Row="2"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal" Margin="7,4">
+                <Button Click="OnCopyToTargetClick" Content="复制到目标  F5" />
+                <Button Margin="5,0,0,0" Click="OnMoveToTargetClick" Content="移动到目标  F6" />
+                <Button Margin="5,0,0,0" Click="OnCreateDirectoryClick" Content="新建目录  F7" />
+                <Button Margin="5,0,0,0" Click="OnDeleteClick" Content="回收站删除  F8" />
+                <Button Margin="5,0,0,0" Click="OnRenameClick" Content="重命名  F2" />
+                <Separator Margin="8,0" />
+                <ProgressBar Width="110"
+                             Height="4"
+                             Margin="0,0,8,0"
+                             IsIndeterminate="True"
+                             Visibility="{Binding IsOperationRunning, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock MaxWidth="420"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource MutedTextBrush}"
+                           Text="{Binding OperationProgressText}"
+                           TextTrimming="CharacterEllipsis" />
+                <Button Margin="8,0,0,0"
+                        Command="{Binding CancelOperationCommand}"
+                        Content="取消操作"
+                        Visibility="{Binding IsOperationRunning, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="3" Margin="6">
+            <Grid>
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsLayoutMaximized}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="LeftPaneColumn" Width="*" MinWidth="380" />
+                    <ColumnDefinition Width="6" />
+                    <ColumnDefinition x:Name="RightPaneColumn" Width="*" MinWidth="380" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition x:Name="TopPaneRow" Height="*" MinHeight="220" />
+                    <RowDefinition Height="6" />
+                    <RowDefinition x:Name="BottomPaneRow" Height="*" MinHeight="220" />
+                </Grid.RowDefinitions>
+
+                <views:FilePaneControl Grid.Row="0" Grid.Column="0" DataContext="{Binding Panes[0]}" />
+                <views:FilePaneControl Grid.Row="0" Grid.Column="2" DataContext="{Binding Panes[1]}" />
+                <views:FilePaneControl Grid.Row="2" Grid.Column="0" DataContext="{Binding Panes[2]}" />
+                <views:FilePaneControl Grid.Row="2" Grid.Column="2" DataContext="{Binding Panes[3]}" />
+
+                <GridSplitter Grid.Row="0"
+                              Grid.RowSpan="3"
+                              Grid.Column="1"
+                              HorizontalAlignment="Stretch"
+                              Background="Transparent"
+                              ResizeBehavior="PreviousAndNext"
+                              ResizeDirection="Columns"
+                              ShowsPreview="True"
+                              DragCompleted="OnSplitterDragCompleted" />
+                <GridSplitter Grid.Row="1"
+                              Grid.Column="0"
+                              Grid.ColumnSpan="3"
+                              VerticalAlignment="Stretch"
+                              Background="Transparent"
+                              ResizeBehavior="PreviousAndNext"
+                              ResizeDirection="Rows"
+                              ShowsPreview="True"
+                              DragCompleted="OnSplitterDragCompleted" />
+            </Grid>
+
+            <views:FilePaneControl DataContext="{Binding MaximizedPane}">
+                <views:FilePaneControl.Style>
+                    <Style TargetType="views:FilePaneControl">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding DataContext.IsLayoutMaximized, RelativeSource={RelativeSource AncestorType=Window}}"
+                                         Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </views:FilePaneControl.Style>
+            </views:FilePaneControl>
+        </Grid>
+
+        <Border Grid.Row="4"
+                Background="#E4E8ED"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0">
+            <Grid Margin="8,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center"
+                           Foreground="#4B5565"
+                           FontSize="12"
+                           Text="{Binding StatusMessage}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Margin="0,0,14,0"
+                            Padding="6,0"
+                            Click="OnShowFailuresClick"
+                            Content="{Binding OperationFailures.Count}"
+                            ContentStringFormat="失败 {0}" />
+                    <Ellipse Width="8" Height="8" Fill="{StaticResource ActiveBrush}" />
+                    <TextBlock Margin="5,0,14,0" FontSize="11" Text="活动窗格" />
+                    <Ellipse Width="8" Height="8" Fill="{StaticResource TargetBrush}" />
+                    <TextBlock Margin="5,0,0,0" FontSize="11" Text="目标窗格" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

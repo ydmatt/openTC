@@ -1,0 +1,22 @@
+# Build output
+bin/
+obj/
+publish/
+.artifacts/
+artifacts/
+
+# Local toolchains
+.tools/
+
+# User-specific portable data
+data/
+logs/
+backups/
+
+# IDE state
+.vs/
+*.user
+*.suo
+
+# Local prototype verification output
+prototype/.screenshots/

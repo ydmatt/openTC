@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="src/MYTC.Domain/MYTC.Domain.csproj" />
+  <Project Path="src/MYTC.Application/MYTC.Application.csproj" />
+  <Project Path="src/MYTC.Infrastructure/MYTC.Infrastructure.csproj" />
+  <Project Path="src/MYTC.App/MYTC.App.csproj" />
+  <Project Path="src/MYTC.Maintenance/MYTC.Maintenance.csproj" />
+  <Project Path="tests/MYTC.Tests/MYTC.Tests.csproj" />
+</Solution>

@@ -1,0 +1,72 @@
+<Window x:Class="MYTC.App.Dialogs.ShortcutCaptureDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="录入快捷键"
+        Width="520"
+        Height="290"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        PreviewKeyDown="OnPreviewKeyDown">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock FontSize="17"
+                   FontWeight="SemiBold"
+                   Text="请直接按下新的快捷键" />
+        <TextBlock Grid.Row="1"
+                   Margin="0,8,0,0"
+                   Foreground="{StaticResource MutedTextBrush}"
+                   TextWrapping="Wrap"
+                   Text="例如直接按 Del，或同时按 Ctrl+Shift+T。按键会被自动识别，不需要输入英文名称。" />
+
+        <CheckBox x:Name="SequenceCheckBox"
+                  Grid.Row="2"
+                  Margin="0,14,0,0"
+                  Content="录制连续按键（例如 Ctrl+D, P）" />
+
+        <Border Grid.Row="3"
+                Margin="0,14,0,0"
+                Padding="12"
+                Background="#F5F7FA"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center"
+                           Foreground="{StaticResource MutedTextBrush}"
+                           Text="当前录入" />
+                <TextBlock x:Name="GestureTextBlock"
+                           Margin="0,6,0,0"
+                           HorizontalAlignment="Center"
+                           FontFamily="Consolas"
+                           FontSize="22"
+                           FontWeight="SemiBold"
+                           Text="等待按键…" />
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="4"
+                    Margin="0,16,0,0"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal">
+            <Button MinWidth="78" Click="OnClearClick" Content="清空" />
+            <Button x:Name="FinishButton"
+                    MinWidth="78"
+                    Margin="8,0,0,0"
+                    Click="OnFinishClick"
+                    Content="完成"
+                    IsEnabled="False" />
+            <Button MinWidth="78"
+                    Margin="8,0,0,0"
+                    Content="取消"
+                    IsCancel="True" />
+        </StackPanel>
+    </Grid>
+</Window>

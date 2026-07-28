@@ -1,0 +1,121 @@
+<Window x:Class="MYTC.App.Dialogs.ShortcutSettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="快捷键设置"
+        Width="760"
+        Height="700"
+        MinWidth="650"
+        MinHeight="540"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Margin="0,0,0,10"
+                   Foreground="{StaticResource MutedTextBrush}"
+                   TextWrapping="Wrap"
+                   Text="双击某一行或点击“录入/修改”，然后直接按新键。同一个功能可添加多行快捷键；连续按键也可在录入窗口中完成。" />
+
+        <Grid Grid.Row="1" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="190" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock VerticalAlignment="Center" Text="快捷键方案" />
+            <ComboBox x:Name="SchemeComboBox"
+                      Grid.Column="1"
+                      Margin="8,0,0,0"
+                      ItemsSource="{Binding SchemeNames}" />
+            <Button Grid.Column="2"
+                    Margin="8,0,0,0"
+                    Click="OnLoadSchemeClick"
+                    Content="载入方案" />
+            <Button Grid.Column="3"
+                    Margin="8,0,0,0"
+                    Click="OnSaveSchemeClick"
+                    Content="保存为方案…" />
+        </Grid>
+
+        <DataGrid x:Name="ShortcutGrid"
+                  Grid.Row="2"
+                  ItemsSource="{Binding Rows}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  IsReadOnly="True"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal"
+                  SelectionMode="Single"
+                  SelectionChanged="OnSelectionChanged"
+                  MouseDoubleClick="OnGridDoubleClick">
+            <DataGrid.Columns>
+                <DataGridTextColumn Width="330"
+                                    MinWidth="280"
+                                    Header="功能"
+                                    Binding="{Binding ActionLabel}" />
+                <DataGridTextColumn Width="*"
+                                    MinWidth="220"
+                                    Header="快捷键"
+                                    Binding="{Binding Gesture}" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Grid Grid.Row="3" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="190" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ComboBox x:Name="ActionComboBox"
+                      ItemsSource="{Binding ActionChoices}"
+                      DisplayMemberPath="Label"
+                      SelectedValuePath="Action" />
+            <Button Grid.Column="1"
+                    Margin="8,0,0,0"
+                    Click="OnAddShortcutClick"
+                    Content="为此功能添加" />
+            <Button Grid.Column="2"
+                    Margin="8,0,0,0"
+                    Click="OnCaptureClick"
+                    Content="录入/修改…" />
+            <Button Grid.Column="3"
+                    Margin="8,0,0,0"
+                    Click="OnTextEditClick"
+                    Content="文字编辑…" />
+            <Button Grid.Column="4"
+                    Margin="8,0,0,0"
+                    Click="OnDeleteShortcutClick"
+                    Content="删除此快捷键" />
+            <Button Grid.Column="6"
+                    Click="OnRestoreDefaultsClick"
+                    Content="恢复默认" />
+        </Grid>
+
+        <StackPanel Grid.Row="4"
+                    Margin="0,14,0,0"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal">
+            <Button MinWidth="86"
+                    Click="OnSaveClick"
+                    Content="保存并应用"
+                    IsDefault="True" />
+            <Button MinWidth="78"
+                    Margin="8,0,0,0"
+                    Content="取消"
+                    IsCancel="True" />
+        </StackPanel>
+    </Grid>
+</Window>

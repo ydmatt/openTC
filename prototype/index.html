@@ -1,0 +1,1241 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MYTC 四窗格交互原型</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef1f5;
+      --surface: #ffffff;
+      --surface-2: #f7f8fa;
+      --text: #1f2937;
+      --muted: #667085;
+      --line: #d7dce3;
+      --line-strong: #b8c0cc;
+      --primary: #1769d2;
+      --primary-soft: #e7f0fc;
+      --target: #b85c00;
+      --target-soft: #fff1df;
+      --selected: #dcecff;
+      --hover: #f0f5fb;
+      --danger: #b42318;
+      --shadow: 0 8px 28px rgba(32, 45, 64, .16);
+      --split-x: 50%;
+      --split-y: 50%;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    .app {
+      height: 100%;
+      display: grid;
+      grid-template-rows: 46px 38px minmax(0, 1fr) 28px;
+    }
+
+    .titlebar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      background: #18212f;
+      color: #fff;
+      border-bottom: 1px solid #0d131d;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 154px;
+      font-weight: 600;
+    }
+
+    .brand-mark {
+      display: grid;
+      grid-template-columns: repeat(2, 7px);
+      grid-template-rows: repeat(2, 7px);
+      gap: 2px;
+      padding: 5px;
+      border-radius: 5px;
+      background: var(--primary);
+    }
+
+    .brand-mark span {
+      background: #fff;
+      border-radius: 1px;
+    }
+
+    .workspace-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .titlebar select,
+    .titlebar button {
+      height: 30px;
+      border: 1px solid #3b4657;
+      border-radius: 5px;
+      color: #fff;
+      background: #253144;
+    }
+
+    .titlebar select {
+      min-width: 150px;
+      padding: 0 28px 0 9px;
+    }
+
+    .titlebar button {
+      padding: 0 10px;
+      cursor: pointer;
+    }
+
+    .titlebar button:hover {
+      background: #33435b;
+    }
+
+    .titlebar-spacer {
+      flex: 1;
+    }
+
+    .window-caption {
+      color: #b8c3d2;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .commandbar {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .commandbar button {
+      height: 28px;
+      padding: 0 10px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .commandbar button:hover {
+      border-color: var(--line);
+      background: var(--surface-2);
+    }
+
+    .commandbar .divider {
+      width: 1px;
+      height: 20px;
+      margin: 0 4px;
+      background: var(--line);
+    }
+
+    .command-hint {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .workspace-shell {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      padding: 6px;
+    }
+
+    .workspace-grid {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: minmax(260px, var(--split-x)) minmax(260px, 1fr);
+      grid-template-rows: minmax(190px, var(--split-y)) minmax(190px, 1fr);
+      gap: 6px;
+    }
+
+    .splitter {
+      position: absolute;
+      z-index: 8;
+      border-radius: 4px;
+    }
+
+    .splitter.vertical {
+      top: 6px;
+      bottom: 6px;
+      left: calc(var(--split-x) + 2px);
+      width: 8px;
+      transform: translateX(-50%);
+      cursor: col-resize;
+    }
+
+    .splitter.horizontal {
+      left: 6px;
+      right: 6px;
+      top: calc(var(--split-y) + 2px);
+      height: 8px;
+      transform: translateY(-50%);
+      cursor: row-resize;
+    }
+
+    .splitter:hover,
+    .splitter.dragging {
+      background: rgba(23, 105, 210, .25);
+    }
+
+    .pane {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 34px 30px minmax(0, 1fr) 24px;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+    }
+
+    .pane.active {
+      border-color: var(--primary);
+      box-shadow: inset 0 0 0 1px var(--primary);
+    }
+
+    .pane.target {
+      border-color: var(--target);
+      box-shadow: inset 0 0 0 1px var(--target);
+    }
+
+    .pane-role {
+      display: none;
+      position: absolute;
+      right: 8px;
+      bottom: 28px;
+      z-index: 3;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      pointer-events: none;
+    }
+
+    .pane.active .pane-role {
+      display: block;
+      color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    .pane.target .pane-role {
+      display: block;
+      color: var(--target);
+      background: var(--target-soft);
+    }
+
+    .pane-nav {
+      display: grid;
+      grid-template-columns: auto 86px minmax(120px, 1fr) auto;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 5px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 2px;
+    }
+
+    .icon-button {
+      width: 25px;
+      height: 25px;
+      padding: 0;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .icon-button:hover {
+      border-color: var(--line);
+      background: #fff;
+    }
+
+    .drive-select,
+    .address {
+      width: 100%;
+      height: 25px;
+      border: 1px solid var(--line-strong);
+      border-radius: 3px;
+      background: #fff;
+    }
+
+    .drive-select {
+      padding-left: 6px;
+    }
+
+    .address {
+      padding: 0 7px;
+      font-family: Consolas, "Segoe UI", sans-serif;
+      font-size: 12px;
+    }
+
+    .tabs {
+      display: flex;
+      align-items: end;
+      gap: 2px;
+      min-width: 0;
+      padding: 3px 5px 0;
+      overflow: hidden;
+      background: #edf0f4;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .tab {
+      max-width: 150px;
+      height: 27px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 9px;
+      overflow: hidden;
+      border: 1px solid transparent;
+      border-bottom: 0;
+      border-radius: 5px 5px 0 0;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .tab:hover {
+      background: rgba(255, 255, 255, .65);
+    }
+
+    .tab.selected {
+      color: var(--text);
+      background: var(--surface);
+      border-color: var(--line);
+    }
+
+    .tab-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .anchor {
+      color: var(--primary);
+      font-size: 11px;
+    }
+
+    .tab-add {
+      width: 25px;
+      height: 25px;
+      flex: 0 0 auto;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .tab-add:hover {
+      background: #fff;
+    }
+
+    .file-view {
+      min-height: 0;
+      overflow: auto;
+      background: #fff;
+    }
+
+    .file-table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .file-table th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      height: 25px;
+      padding: 0;
+      text-align: left;
+      font-weight: 500;
+      background: #f7f8fa;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .file-table th button {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 7px;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .file-table th button:hover {
+      background: #e9eef5;
+    }
+
+    .file-table td {
+      height: 24px;
+      padding: 0 7px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-bottom: 1px solid #f2f3f5;
+    }
+
+    .file-table tr:hover td {
+      background: var(--hover);
+    }
+
+    .file-table tr.selected td {
+      background: var(--selected);
+    }
+
+    .name-col {
+      width: 45%;
+    }
+
+    .date-col {
+      width: 24%;
+    }
+
+    .type-col {
+      width: 19%;
+    }
+
+    .size-col {
+      width: 12%;
+    }
+
+    .file-icon {
+      display: inline-block;
+      width: 17px;
+      margin-right: 3px;
+      text-align: center;
+    }
+
+    .size-cell {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pane-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 7px;
+      color: var(--muted);
+      background: var(--surface-2);
+      border-top: 1px solid var(--line);
+      font-size: 11px;
+    }
+
+    .pane-status span:last-child {
+      margin-left: auto;
+    }
+
+    .statusbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+      padding: 0 10px;
+      color: #4b5565;
+      background: #e4e8ed;
+      border-top: 1px solid #c9d0d9;
+      font-size: 12px;
+    }
+
+    .status-message {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .legend {
+      display: flex;
+      gap: 12px;
+      white-space: nowrap;
+    }
+
+    .legend-item::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 5px;
+      border-radius: 2px;
+      background: var(--primary);
+    }
+
+    .legend-item.target-legend::before {
+      background: var(--target);
+    }
+
+    .sequence-toast {
+      position: fixed;
+      left: 50%;
+      bottom: 42px;
+      z-index: 20;
+      display: none;
+      min-width: 280px;
+      padding: 10px 14px;
+      transform: translateX(-50%);
+      border: 1px solid var(--primary);
+      border-radius: 6px;
+      color: #fff;
+      background: #18212f;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+    }
+
+    .sequence-toast.visible {
+      display: block;
+    }
+
+    .context-menu {
+      position: fixed;
+      z-index: 30;
+      display: none;
+      min-width: 220px;
+      padding: 5px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .context-menu.visible {
+      display: block;
+    }
+
+    .context-menu button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 7px 9px;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .context-menu button:hover {
+      background: var(--hover);
+    }
+
+    .context-menu .danger {
+      color: var(--danger);
+    }
+
+    .context-menu hr {
+      margin: 4px 3px;
+      border: 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .maximized .workspace-grid {
+      display: block;
+    }
+
+    .maximized .pane {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    .maximized .pane.max-pane {
+      display: grid;
+    }
+
+    .maximized .splitter {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .window-caption,
+      .command-hint {
+        display: none;
+      }
+
+      .workspace-grid {
+        grid-template-columns: minmax(220px, var(--split-x)) minmax(220px, 1fr);
+      }
+
+      .date-col {
+        width: 28%;
+      }
+
+      .type-col {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="titlebar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+        <span>MYTC</span>
+      </div>
+      <div class="workspace-controls">
+        <label for="workspaceSelect">工作区</label>
+        <select id="workspaceSelect">
+          <option value="bidding">标书工作区</option>
+          <option value="youtube">YouTube 工作区</option>
+        </select>
+        <button id="saveWorkspace" type="button">保存工作区</button>
+        <button id="restoreLayout" type="button">恢复四窗格</button>
+      </div>
+      <div class="titlebar-spacer"></div>
+      <button id="shortcutSettings" type="button">快捷键设置</button>
+      <button id="menuSettings" type="button">右键菜单设置</button>
+      <span class="window-caption">绿色便携版 · 交互原型</span>
+    </header>
+
+    <nav class="commandbar" aria-label="文件命令">
+      <button type="button" data-command="copy-target">复制到目标 <kbd>F5</kbd></button>
+      <button type="button" data-command="move-target">移动到目标 <kbd>F6</kbd></button>
+      <button type="button" data-command="new-folder">新建目录 <kbd>F7</kbd></button>
+      <button type="button" data-command="delete">删除 <kbd>F8</kbd></button>
+      <span class="divider"></span>
+      <button type="button" data-command="copy-clipboard">复制 <kbd>Ctrl+C</kbd></button>
+      <button type="button" data-command="paste">粘贴 <kbd>Ctrl+V</kbd></button>
+      <span class="command-hint">连续键演示：Ctrl+D，然后按 P</span>
+    </nav>
+
+    <section class="workspace-shell" id="workspaceShell" aria-label="四窗格工作区">
+      <div class="workspace-grid" id="workspaceGrid"></div>
+      <div class="splitter vertical" id="verticalSplitter" aria-hidden="true"></div>
+      <div class="splitter horizontal" id="horizontalSplitter" aria-hidden="true"></div>
+    </section>
+
+    <footer class="statusbar">
+      <div class="status-message" id="statusMessage">原型不会操作真实文件。点击窗格切换活动和目标状态。</div>
+      <div class="legend">
+        <span class="legend-item">活动窗格</span>
+        <span class="legend-item target-legend">目标窗格</span>
+      </div>
+    </footer>
+  </main>
+
+  <div class="sequence-toast" id="sequenceToast" role="status">
+    已输入 <strong>Ctrl+D</strong>，等待后续键：<strong>P</strong> 打开项目目录，Esc 取消
+  </div>
+
+  <div class="context-menu" id="contextMenu" role="menu">
+    <button type="button" data-menu-action="打开"><span>打开</span><kbd>Enter</kbd></button>
+    <button type="button" data-menu-action="复制到目标窗格"><span>复制到目标窗格</span><kbd>F5</kbd></button>
+    <button type="button" data-menu-action="移动到目标窗格"><span>移动到目标窗格</span><kbd>F6</kbd></button>
+    <button type="button" data-menu-action="重命名"><span>重命名</span><kbd>F2</kbd></button>
+    <hr>
+    <button type="button" data-menu-action="使用 Word 打开"><span>使用 Word 打开</span><span>自定义</span></button>
+    <button type="button" data-menu-action="发送到 AI 输出目录"><span>发送到 AI 输出目录</span><span>自定义</span></button>
+    <hr>
+    <button class="danger" type="button" data-menu-action="删除到回收站"><span>删除到回收站</span><kbd>F8</kbd></button>
+  </div>
+
+  <script>
+    const driveOptions = ["C:", "D:", "E:", "O:", "T:"];
+
+    const workspaceData = {
+      bidding: [
+        {
+          id: "top-left",
+          activeTab: 0,
+          tabs: [
+            { title: "当前标书", mode: "normal", path: "D:\\BidProjects\\2026-Bank-MIS" },
+            { title: "项目模板", mode: "fixed", fixedPath: "O:\\BidAssets\\Templates", path: "O:\\BidAssets\\Templates" }
+          ],
+          files: [
+            { name: "01_招标文件", kind: "folder", modified: "2026-07-26 19:20", type: "文件夹", size: 0 },
+            { name: "02_技术方案", kind: "folder", modified: "2026-07-27 09:35", type: "文件夹", size: 0 },
+            { name: "03_项目素材", kind: "folder", modified: "2026-07-27 10:12", type: "文件夹", size: 0 },
+            { name: "技术方案-V1.docx", kind: "file", modified: "2026-07-27 14:40", type: "Microsoft Word 文档", size: 148726784 },
+            { name: "注意事项.txt", kind: "file", modified: "2026-07-27 16:25", type: "文本文档", size: 1184 }
+          ]
+        },
+        {
+          id: "top-right",
+          activeTab: 0,
+          tabs: [
+            { title: "素材库", mode: "fixed", fixedPath: "O:\\BidAssets", path: "O:\\BidAssets" },
+            { title: "AI 输出", mode: "fixed", fixedPath: "T:\\AI-Output", path: "T:\\AI-Output" }
+          ],
+          files: [
+            { name: "企业资质", kind: "folder", modified: "2026-07-21 11:22", type: "文件夹", size: 0 },
+            { name: "权威案例库", kind: "folder", modified: "2026-07-25 08:56", type: "文件夹", size: 0 },
+            { name: "技术模板", kind: "folder", modified: "2026-07-26 17:10", type: "文件夹", size: 0 },
+            { name: "产品参数.xlsx", kind: "file", modified: "2026-07-24 15:31", type: "Microsoft Excel 工作表", size: 485632 },
+            { name: "公司简介.pdf", kind: "file", modified: "2026-07-20 09:05", type: "PDF 文件", size: 13587456 }
+          ]
+        },
+        {
+          id: "bottom-left",
+          activeTab: 0,
+          tabs: [
+            { title: "临时工作", mode: "normal", path: "T:\\Temp" },
+            { title: "下载", mode: "fixed", fixedPath: "D:\\Downloads", path: "D:\\Downloads" }
+          ],
+          files: [
+            { name: "待处理", kind: "folder", modified: "2026-07-27 15:18", type: "文件夹", size: 0 },
+            { name: "图片转换", kind: "folder", modified: "2026-07-27 13:04", type: "文件夹", size: 0 },
+            { name: "表格提取", kind: "folder", modified: "2026-07-27 11:29", type: "文件夹", size: 0 },
+            { name: "临时说明.md", kind: "file", modified: "2026-07-27 16:03", type: "Markdown 文件", size: 8192 }
+          ]
+        },
+        {
+          id: "bottom-right",
+          activeTab: 0,
+          tabs: [
+            { title: "交付目录", mode: "fixed", fixedPath: "T:\\RDtoDocx", path: "T:\\RDtoDocx" },
+            { title: "归档", mode: "fixed", fixedPath: "O:\\BidArchive", path: "O:\\BidArchive" }
+          ],
+          files: [
+            { name: "应答文件-业绩文件终稿.pdf", kind: "file", modified: "2026-07-27 11:16", type: "PDF 文件", size: 13587456 },
+            { name: "收银双屏终稿.docx", kind: "file", modified: "2026-07-27 14:40", type: "Microsoft Word 文档", size: 5881856 },
+            { name: "提交清单.xlsx", kind: "file", modified: "2026-07-27 15:02", type: "Microsoft Excel 工作表", size: 262144 }
+          ]
+        }
+      ],
+      youtube: [
+        {
+          id: "top-left",
+          activeTab: 0,
+          tabs: [
+            { title: "当前视频", mode: "normal", path: "D:\\YouTube\\Projects\\Short-042" },
+            { title: "项目列表", mode: "fixed", fixedPath: "D:\\YouTube\\Projects", path: "D:\\YouTube\\Projects" }
+          ],
+          files: [
+            { name: "01_脚本", kind: "folder", modified: "2026-07-27 08:12", type: "文件夹", size: 0 },
+            { name: "02_素材", kind: "folder", modified: "2026-07-27 09:42", type: "文件夹", size: 0 },
+            { name: "03_工程", kind: "folder", modified: "2026-07-27 10:18", type: "文件夹", size: 0 },
+            { name: "分镜表.xlsx", kind: "file", modified: "2026-07-27 10:35", type: "Microsoft Excel 工作表", size: 96256 }
+          ]
+        },
+        {
+          id: "top-right",
+          activeTab: 0,
+          tabs: [
+            { title: "视频素材", mode: "fixed", fixedPath: "O:\\Media\\Video", path: "O:\\Media\\Video" },
+            { title: "图片素材", mode: "fixed", fixedPath: "O:\\Media\\Images", path: "O:\\Media\\Images" }
+          ],
+          files: [
+            { name: "人物", kind: "folder", modified: "2026-07-25 11:22", type: "文件夹", size: 0 },
+            { name: "场景", kind: "folder", modified: "2026-07-25 12:10", type: "文件夹", size: 0 },
+            { name: "转场", kind: "folder", modified: "2026-07-26 18:04", type: "文件夹", size: 0 },
+            { name: "片头素材.mp4", kind: "file", modified: "2026-07-26 21:11", type: "MP4 视频", size: 266338304 }
+          ]
+        },
+        {
+          id: "bottom-left",
+          activeTab: 0,
+          tabs: [
+            { title: "常用工具", mode: "fixed", fixedPath: "D:\\AI-Tools", path: "D:\\AI-Tools" }
+          ],
+          files: [
+            { name: "图像生成", kind: "folder", modified: "2026-07-20 13:33", type: "文件夹", size: 0 },
+            { name: "视频生成", kind: "folder", modified: "2026-07-22 09:14", type: "文件夹", size: 0 },
+            { name: "字幕工具", kind: "folder", modified: "2026-07-23 17:45", type: "文件夹", size: 0 }
+          ]
+        },
+        {
+          id: "bottom-right",
+          activeTab: 0,
+          tabs: [
+            { title: "最终输出", mode: "fixed", fixedPath: "T:\\YouTube-Output", path: "T:\\YouTube-Output" }
+          ],
+          files: [
+            { name: "Short-042-final.mp4", kind: "file", modified: "2026-07-27 15:44", type: "MP4 视频", size: 125829120 },
+            { name: "Short-042-cover.png", kind: "file", modified: "2026-07-27 15:46", type: "PNG 图像", size: 2097152 }
+          ]
+        }
+      ]
+    };
+
+    let currentWorkspace = "bidding";
+    let panes = structuredClone(workspaceData[currentWorkspace]);
+    let activePaneId = "top-left";
+    let targetPaneId = "top-right";
+    let maximizedPaneId = null;
+    let selectedItem = null;
+    let sequenceTimer = null;
+    let sequencePending = false;
+
+    const grid = document.getElementById("workspaceGrid");
+    const shell = document.getElementById("workspaceShell");
+    const statusMessage = document.getElementById("statusMessage");
+    const contextMenu = document.getElementById("contextMenu");
+    const sequenceToast = document.getElementById("sequenceToast");
+
+    function getPane(id) {
+      return panes.find(pane => pane.id === id);
+    }
+
+    function getActiveTab(pane) {
+      return pane.tabs[pane.activeTab];
+    }
+
+    function setStatus(message) {
+      statusMessage.textContent = message;
+    }
+
+    function currentDrive(path) {
+      const match = /^[A-Za-z]:/.exec(path || "");
+      return match ? match[0].toUpperCase() : "D:";
+    }
+
+    function formatSize(bytes, kind) {
+      if (kind === "folder") return "";
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024).toLocaleString()} KB`;
+      return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    }
+
+    function sortFiles(pane) {
+      const sort = pane.sort || { key: "name", direction: "asc" };
+      const direction = sort.direction === "asc" ? 1 : -1;
+      return [...pane.files].sort((a, b) => {
+        if (a.kind !== b.kind) return a.kind === "folder" ? -1 : 1;
+        let left = a[sort.key];
+        let right = b[sort.key];
+        if (sort.key === "name" || sort.key === "type" || sort.key === "modified") {
+          return String(left).localeCompare(String(right), "zh-CN", { numeric: true }) * direction;
+        }
+        return (left - right) * direction;
+      });
+    }
+
+    function render() {
+      grid.innerHTML = "";
+      panes.forEach(pane => {
+        const tab = getActiveTab(pane);
+        const paneElement = document.createElement("section");
+        paneElement.className = "pane";
+        paneElement.dataset.paneId = pane.id;
+        if (pane.id === activePaneId) paneElement.classList.add("active");
+        if (pane.id === targetPaneId && pane.id !== activePaneId) paneElement.classList.add("target");
+        if (pane.id === maximizedPaneId) paneElement.classList.add("max-pane");
+
+        const roleText = pane.id === activePaneId ? "活动" : pane.id === targetPaneId ? "目标" : "";
+        const drive = currentDrive(tab.path);
+        const driveHtml = driveOptions.map(item =>
+          `<option value="${item}" ${item === drive ? "selected" : ""}>▣ ${item}</option>`
+        ).join("");
+        const tabsHtml = pane.tabs.map((item, index) => `
+          <button class="tab ${index === pane.activeTab ? "selected" : ""}" type="button"
+                  data-tab-index="${index}" title="${item.mode === "fixed" ? `固定目录：${item.fixedPath}` : `最后位置：${item.path}`}">
+            ${item.mode === "fixed" ? '<span class="anchor" aria-label="固定目录">◆</span>' : ""}
+            <span class="tab-title">${item.title}</span>
+          </button>
+        `).join("");
+
+        const sort = pane.sort || { key: "name", direction: "asc" };
+        const arrow = key => sort.key === key ? (sort.direction === "asc" ? "▲" : "▼") : "";
+        const rowsHtml = sortFiles(pane).map((item, index) => `
+          <tr draggable="true" data-file-index="${index}" data-file-name="${item.name}">
+            <td title="${item.name}"><span class="file-icon">${item.kind === "folder" ? "📁" : "📄"}</span>${item.name}</td>
+            <td>${item.modified}</td>
+            <td>${item.type}</td>
+            <td class="size-cell">${formatSize(item.size, item.kind)}</td>
+          </tr>
+        `).join("");
+
+        paneElement.innerHTML = `
+          <div class="pane-role">${roleText}</div>
+          <div class="pane-nav">
+            <div class="nav-buttons">
+              <button class="icon-button" type="button" data-nav="back" aria-label="后退">←</button>
+              <button class="icon-button" type="button" data-nav="forward" aria-label="前进">→</button>
+              <button class="icon-button" type="button" data-nav="up" aria-label="上级">↑</button>
+              <button class="icon-button" type="button" data-nav="refresh" aria-label="刷新">↻</button>
+            </div>
+            <select class="drive-select" aria-label="快速切换盘符">${driveHtml}</select>
+            <input class="address" aria-label="当前地址" value="${tab.path}">
+            <button class="icon-button maximize-button" type="button"
+                    aria-label="${maximizedPaneId ? "恢复四窗格" : "最大化当前窗格"}">${maximizedPaneId ? "⊞" : "□"}</button>
+          </div>
+          <div class="tabs">
+            ${tabsHtml}
+            <button class="tab-add" type="button" aria-label="新建标签">＋</button>
+          </div>
+          <div class="file-view">
+            <table class="file-table">
+              <thead>
+                <tr>
+                  <th class="name-col"><button type="button" data-sort="name"><span>名称</span><span>${arrow("name")}</span></button></th>
+                  <th class="date-col"><button type="button" data-sort="modified"><span>修改日期</span><span>${arrow("modified")}</span></button></th>
+                  <th class="type-col"><button type="button" data-sort="type"><span>类型</span><span>${arrow("type")}</span></button></th>
+                  <th class="size-col"><button type="button" data-sort="size"><span>大小</span><span>${arrow("size")}</span></button></th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
+          <div class="pane-status">
+            <span>${pane.files.length} 个对象</span>
+            <span>${tab.mode === "fixed" ? `固定：${tab.fixedPath}` : "保持最后位置"}</span>
+          </div>
+        `;
+
+        bindPaneEvents(paneElement, pane);
+        grid.appendChild(paneElement);
+      });
+
+      shell.classList.toggle("maximized", Boolean(maximizedPaneId));
+    }
+
+    function refreshPaneRoles() {
+      document.querySelectorAll(".pane").forEach(element => {
+        const paneId = element.dataset.paneId;
+        element.classList.toggle("active", paneId === activePaneId);
+        element.classList.toggle("target", paneId === targetPaneId && paneId !== activePaneId);
+        const role = element.querySelector(".pane-role");
+        if (role) role.textContent = paneId === activePaneId ? "活动" : paneId === targetPaneId ? "目标" : "";
+      });
+    }
+
+    function activatePane(paneId, rerender = true) {
+      if (paneId !== activePaneId) {
+        targetPaneId = activePaneId;
+        activePaneId = paneId;
+        setStatus(`活动窗格：${paneId}；目标窗格：${targetPaneId}`);
+        if (rerender) {
+          render();
+        } else {
+          refreshPaneRoles();
+        }
+      }
+    }
+
+    function selectTab(pane, tabIndex) {
+      const wasActiveTab = pane.activeTab === tabIndex;
+      pane.activeTab = tabIndex;
+      const tab = getActiveTab(pane);
+      if (tab.mode === "fixed") {
+        tab.path = tab.fixedPath;
+        setStatus(`${wasActiveTab ? "再次点击" : "激活"}固定目录标签“${tab.title}”，已回到 ${tab.fixedPath}`);
+      } else {
+        setStatus(`普通标签“${tab.title}”保持最后位置：${tab.path}`);
+      }
+      render();
+    }
+
+    function bindPaneEvents(element, pane) {
+      element.addEventListener("mousedown", event => {
+        if (!event.target.closest(".context-menu")) activatePane(pane.id, false);
+      });
+
+      element.querySelectorAll(".tab").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+          activatePane(pane.id);
+          selectTab(pane, Number(button.dataset.tabIndex));
+        });
+      });
+
+      element.querySelector(".tab-add").addEventListener("click", event => {
+        event.stopPropagation();
+        const current = getActiveTab(pane);
+        pane.tabs.push({
+          title: `新标签 ${pane.tabs.length + 1}`,
+          mode: "normal",
+          path: current.path
+        });
+        pane.activeTab = pane.tabs.length - 1;
+        setStatus(`已在 ${pane.id} 新建普通标签`);
+        render();
+      });
+
+      element.querySelector(".drive-select").addEventListener("change", event => {
+        const tab = getActiveTab(pane);
+        tab.path = `${event.target.value}\\`;
+        setStatus(`${pane.id} 已快速切换到 ${tab.path}`);
+        render();
+      });
+
+      const address = element.querySelector(".address");
+      address.addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+          getActiveTab(pane).path = address.value.trim() || getActiveTab(pane).path;
+          setStatus(`${pane.id} 已导航到 ${getActiveTab(pane).path}`);
+          render();
+        }
+      });
+
+      element.querySelectorAll("[data-nav]").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+          const action = button.dataset.nav;
+          const tab = getActiveTab(pane);
+          if (action === "up") {
+            const trimmed = tab.path.replace(/[\\/]+$/, "");
+            const lastSlash = Math.max(trimmed.lastIndexOf("\\"), trimmed.lastIndexOf("/"));
+            if (lastSlash > 2) tab.path = trimmed.slice(0, lastSlash);
+          }
+          setStatus(`${pane.id}：${action === "refresh" ? "刷新目录" : action === "up" ? `进入上级 ${tab.path}` : action === "back" ? "后退" : "前进"}（原型）`);
+          render();
+        });
+      });
+
+      element.querySelector(".maximize-button").addEventListener("click", event => {
+        event.stopPropagation();
+        maximizedPaneId = maximizedPaneId ? null : pane.id;
+        setStatus(maximizedPaneId ? `已临时最大化 ${pane.id}` : "已恢复 2×2 四窗格");
+        render();
+      });
+
+      element.querySelectorAll("[data-sort]").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+          const key = button.dataset.sort;
+          if (!pane.sort || pane.sort.key !== key) {
+            pane.sort = { key, direction: "asc" };
+          } else {
+            pane.sort.direction = pane.sort.direction === "asc" ? "desc" : "asc";
+          }
+          setStatus(`${pane.id} 按“${button.textContent.trim()}”排序`);
+          render();
+        });
+      });
+
+      element.querySelectorAll("tbody tr").forEach(row => {
+        row.addEventListener("click", event => {
+          event.stopPropagation();
+          element.querySelectorAll("tbody tr").forEach(item => item.classList.remove("selected"));
+          row.classList.add("selected");
+          selectedItem = { paneId: pane.id, name: row.dataset.fileName };
+          activatePane(pane.id);
+          setStatus(`已选择：${row.dataset.fileName}`);
+        });
+
+        row.addEventListener("contextmenu", event => {
+          event.preventDefault();
+          event.stopPropagation();
+          selectedItem = { paneId: pane.id, name: row.dataset.fileName };
+          activatePane(pane.id);
+          showContextMenu(event.clientX, event.clientY);
+        });
+
+        row.addEventListener("dragstart", event => {
+          selectedItem = { paneId: pane.id, name: row.dataset.fileName };
+          event.dataTransfer.setData("text/plain", JSON.stringify(selectedItem));
+          event.dataTransfer.effectAllowed = "copyMove";
+        });
+      });
+
+      element.addEventListener("dragover", event => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = event.shiftKey ? "move" : "copy";
+      });
+
+      element.addEventListener("drop", event => {
+        event.preventDefault();
+        let payload;
+        try {
+          payload = JSON.parse(event.dataTransfer.getData("text/plain"));
+        } catch {
+          return;
+        }
+        const operation = event.shiftKey ? "移动" : "复制";
+        setStatus(`${operation}“${payload.name}”：${payload.paneId} → ${pane.id}（原型，不操作真实文件）`);
+      });
+    }
+
+    function showContextMenu(x, y) {
+      contextMenu.classList.add("visible");
+      const width = 230;
+      const height = 290;
+      contextMenu.style.left = `${Math.min(x, window.innerWidth - width - 8)}px`;
+      contextMenu.style.top = `${Math.min(y, window.innerHeight - height - 8)}px`;
+    }
+
+    function hideContextMenu() {
+      contextMenu.classList.remove("visible");
+    }
+
+    function describeTargetOperation(action) {
+      const item = selectedItem ? `“${selectedItem.name}”` : "当前选择";
+      setStatus(`${action}${item}：${activePaneId} → ${targetPaneId}（原型，不操作真实文件）`);
+    }
+
+    document.querySelectorAll("[data-command]").forEach(button => {
+      button.addEventListener("click", () => {
+        const command = button.dataset.command;
+        if (command === "copy-target") describeTargetOperation("复制");
+        if (command === "move-target") describeTargetOperation("移动");
+        if (command === "new-folder") setStatus(`在 ${activePaneId} 新建目录（原型）`);
+        if (command === "delete") setStatus("普通删除将进入回收站；原型未执行");
+        if (command === "copy-clipboard") setStatus("已复制到 Windows 剪贴板（原型）");
+        if (command === "paste") setStatus(`粘贴到 ${activePaneId}（原型）`);
+      });
+    });
+
+    contextMenu.querySelectorAll("[data-menu-action]").forEach(button => {
+      button.addEventListener("click", () => {
+        setStatus(`自定义右键菜单：${button.dataset.menuAction} ${selectedItem ? `“${selectedItem.name}”` : ""}（原型）`);
+        hideContextMenu();
+      });
+    });
+
+    document.addEventListener("click", event => {
+      if (!event.target.closest("#contextMenu")) hideContextMenu();
+    });
+
+    document.addEventListener("keydown", event => {
+      if (sequencePending) {
+        if (event.key === "Escape") {
+          cancelSequence("已取消连续快捷键");
+          return;
+        }
+        event.preventDefault();
+        const key = event.key.toUpperCase();
+        if (key === "P") {
+          const pane = getPane(activePaneId);
+          getActiveTab(pane).path = "D:\\BidProjects";
+          cancelSequence("连续快捷键 Ctrl+D, P：已打开项目目录");
+          render();
+        } else {
+          cancelSequence(`未绑定连续快捷键 Ctrl+D, ${key}`);
+        }
+        return;
+      }
+
+      if (event.ctrlKey && event.key.toLowerCase() === "d") {
+        event.preventDefault();
+        sequencePending = true;
+        sequenceToast.classList.add("visible");
+        setStatus("连续快捷键等待中：Ctrl+D …");
+        sequenceTimer = window.setTimeout(() => cancelSequence("连续快捷键已超时"), 1500);
+        return;
+      }
+
+      if (event.key === "F5") {
+        event.preventDefault();
+        describeTargetOperation("复制");
+      } else if (event.key === "F6") {
+        event.preventDefault();
+        describeTargetOperation("移动");
+      } else if (event.key === "F7") {
+        event.preventDefault();
+        setStatus(`在 ${activePaneId} 新建目录（原型）`);
+      } else if (event.key === "F8") {
+        event.preventDefault();
+        setStatus("普通删除将进入回收站；原型未执行");
+      } else if (event.ctrlKey && ["1", "2", "3", "4"].includes(event.key)) {
+        event.preventDefault();
+        activatePane(panes[Number(event.key) - 1].id);
+      }
+    });
+
+    function cancelSequence(message) {
+      sequencePending = false;
+      sequenceToast.classList.remove("visible");
+      window.clearTimeout(sequenceTimer);
+      setStatus(message);
+    }
+
+    document.getElementById("workspaceSelect").addEventListener("change", event => {
+      currentWorkspace = event.target.value;
+      panes = structuredClone(workspaceData[currentWorkspace]);
+      activePaneId = "top-left";
+      targetPaneId = "top-right";
+      maximizedPaneId = null;
+      setStatus(`已加载${event.target.options[event.target.selectedIndex].text}`);
+      render();
+    });
+
+    document.getElementById("saveWorkspace").addEventListener("click", () => {
+      setStatus("已保存工作区：布局、标签、目录、排序、活动窗格和目标窗格（原型）");
+    });
+
+    document.getElementById("restoreLayout").addEventListener("click", () => {
+      document.documentElement.style.setProperty("--split-x", "50%");
+      document.documentElement.style.setProperty("--split-y", "50%");
+      maximizedPaneId = null;
+      setStatus("已恢复默认 2×2 四窗格布局");
+      render();
+    });
+
+    document.getElementById("shortcutSettings").addEventListener("click", () => {
+      setStatus("快捷键设置：Windows 与 TC 命令并存，支持多键序列（原型）");
+    });
+
+    document.getElementById("menuSettings").addEventListener("click", () => {
+      setStatus("右键菜单设置：显示、隐藏、排序及外部程序命令（原型）");
+    });
+
+    function bindSplitter(splitter, axis) {
+      splitter.addEventListener("pointerdown", event => {
+        splitter.setPointerCapture(event.pointerId);
+        splitter.classList.add("dragging");
+      });
+      splitter.addEventListener("pointermove", event => {
+        if (!splitter.hasPointerCapture(event.pointerId)) return;
+        const rect = shell.getBoundingClientRect();
+        if (axis === "x") {
+          const value = Math.max(25, Math.min(75, ((event.clientX - rect.left) / rect.width) * 100));
+          document.documentElement.style.setProperty("--split-x", `${value}%`);
+        } else {
+          const value = Math.max(25, Math.min(75, ((event.clientY - rect.top) / rect.height) * 100));
+          document.documentElement.style.setProperty("--split-y", `${value}%`);
+        }
+      });
+      splitter.addEventListener("pointerup", event => {
+        splitter.releasePointerCapture(event.pointerId);
+        splitter.classList.remove("dragging");
+        setStatus("已调整四窗格比例");
+      });
+    }
+
+    bindSplitter(document.getElementById("verticalSplitter"), "x");
+    bindSplitter(document.getElementById("horizontalSplitter"), "y");
+
+    render();
+  </script>
+</body>
+</html>

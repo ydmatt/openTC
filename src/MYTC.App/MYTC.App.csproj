@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>MYTC</AssemblyName>
+    <RootNamespace>MYTC.App</RootNamespace>
+    <Version>1.0.1</Version>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
+    <Product>MYTC 四窗格资源管理器</Product>
+    <ApplicationIcon>Assets\mytc.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\mytc.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MYTC.Application\MYTC.Application.csproj" />
+    <ProjectReference Include="..\MYTC.Domain\MYTC.Domain.csproj" />
+    <ProjectReference Include="..\MYTC.Infrastructure\MYTC.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

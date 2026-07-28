@@ -6,9 +6,9 @@
         Icon="Assets/mytc.ico"
         Width="1440"
         Height="900"
-        MinWidth="1000"
-        MinHeight="620"
-        WindowStartupLocation="CenterScreen"
+        MinWidth="640"
+        MinHeight="400"
+        WindowStartupLocation="Manual"
         Background="{StaticResource AppBackgroundBrush}"
         PreviewKeyDown="OnWindowKeyDown"
         PreviewKeyUp="OnWindowKeyUp"
@@ -205,14 +205,14 @@
                     </Style>
                 </Grid.Style>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition x:Name="LeftPaneColumn" Width="*" MinWidth="380" />
+                    <ColumnDefinition x:Name="LeftPaneColumn" Width="*" MinWidth="260" />
                     <ColumnDefinition Width="6" />
-                    <ColumnDefinition x:Name="RightPaneColumn" Width="*" MinWidth="380" />
+                    <ColumnDefinition x:Name="RightPaneColumn" Width="*" MinWidth="260" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
-                    <RowDefinition x:Name="TopPaneRow" Height="*" MinHeight="220" />
+                    <RowDefinition x:Name="TopPaneRow" Height="*" MinHeight="110" />
                     <RowDefinition Height="6" />
-                    <RowDefinition x:Name="BottomPaneRow" Height="*" MinHeight="220" />
+                    <RowDefinition x:Name="BottomPaneRow" Height="*" MinHeight="110" />
                 </Grid.RowDefinitions>
 
                 <views:FilePaneControl Grid.Row="0" Grid.Column="0" DataContext="{Binding Panes[0]}" />

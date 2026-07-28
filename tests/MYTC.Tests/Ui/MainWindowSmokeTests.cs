@@ -84,6 +84,15 @@ public sealed class MainWindowSmokeTests
                     DataContext = viewModel,
                 };
                 window.Show();
+                var workingArea = SystemParameters.WorkArea;
+                Assert.True(window.Left >= workingArea.Left);
+                Assert.True(window.Top >= workingArea.Top);
+                Assert.True(
+                    window.Left + window.ActualWidth <=
+                    workingArea.Right + 1);
+                Assert.True(
+                    window.Top + window.ActualHeight <=
+                    workingArea.Bottom + 1);
                 Assert.NotNull(window.Icon);
                 Assert.True(
                     TaskbarIdentity.TryApplyWindowProperties(window));

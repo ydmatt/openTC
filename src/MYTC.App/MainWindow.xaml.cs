@@ -14,6 +14,7 @@ using MYTC.App.Menus;
 using MYTC.App.Shortcuts;
 using MYTC.App.ViewModels;
 using MYTC.App.Views;
+using MYTC.App.Windows;
 using MYTC.Application.Abstractions;
 using MYTC.Application.Files;
 using MYTC.Domain.Configuration;
@@ -70,6 +71,13 @@ public partial class MainWindow
         _recycleBinRestoreService = recycleBinRestoreService;
         _deleteConfirmationOverride = deleteConfirmationOverride;
         InitializeComponent();
+        SourceInitialized += (_, _) =>
+            AdaptiveWindowPlacement.FitInitialWindowToWorkingArea(
+                this,
+                desiredWidth: 1440,
+                desiredHeight: 900,
+                requestedMinimumWidth: 640,
+                requestedMinimumHeight: 400);
         VersionTextBlock.Text =
             $"v{typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "未知"}";
         DataContextChanged += OnDataContextChanged;

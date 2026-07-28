@@ -47,6 +47,7 @@ public partial class MainWindow
     private bool _deleteKeyReady = true;
     private bool _suppressAltMenuActivation;
     private bool _allowClose;
+    private FilePaneViewModel? _pendingFileListNavigationPane;
 
     public MainWindow(
         IShortcutStore shortcutStore,
@@ -139,9 +140,14 @@ public partial class MainWindow
             return;
         }
 
+        var eventKey = GetEventKey(e);
+        if (TryHandlePendingFileListArrow(e, eventKey))
+        {
+            return;
+        }
+
         SynchronizeFocusedFilePaneSelection();
 
-        var eventKey = GetEventKey(e);
         if (eventKey == Key.Enter &&
             !e.IsRepeat &&
             TryGetFocusedFileGrid(out var focusedPane, out var focusedGrid) &&
@@ -151,7 +157,17 @@ public partial class MainWindow
             focusedPane.RequestActivation();
             focusedPane.SetSelectedItems(
                 focusedGrid.SelectedItems.Cast<FileSystemEntry>());
+            var previousPath = focusedPane.CurrentPath;
             await focusedPane.OpenEntryAsync(entry);
+            if (!StringComparer.OrdinalIgnoreCase.Equals(
+                    previousPath,
+                    focusedPane.CurrentPath))
+            {
+                await Dispatcher.InvokeAsync(
+                    () => RestoreFileListKeyboardNavigation(focusedPane),
+                    System.Windows.Threading.DispatcherPriority.ContextIdle);
+            }
+
             return;
         }
 
@@ -309,10 +325,16 @@ public partial class MainWindow
             case ShortcutAction.NavigateUp:
                 if (ViewModel.ActivePane is { } upPane)
                 {
+                    var previousPath = upPane.CurrentPath;
                     await upPane.NavigateUpAsync();
-                    await Dispatcher.InvokeAsync(
-                        FocusActivePaneFirstItem,
-                        System.Windows.Threading.DispatcherPriority.ContextIdle);
+                    if (!StringComparer.OrdinalIgnoreCase.Equals(
+                            previousPath,
+                            upPane.CurrentPath))
+                    {
+                        await Dispatcher.InvokeAsync(
+                            () => RestoreFileListKeyboardNavigation(upPane),
+                            System.Windows.Threading.DispatcherPriority.ContextIdle);
+                    }
                 }
 
                 break;
@@ -1893,6 +1915,34 @@ public partial class MainWindow
         }
     }
 
+    private bool TryHandlePendingFileListArrow(
+        KeyEventArgs e,
+        Key eventKey)
+    {
+        if (_pendingFileListNavigationPane is not { } pane ||
+            Keyboard.Modifiers != ModifierKeys.None ||
+            eventKey is not (Key.Up or Key.Down) ||
+            Keyboard.FocusedElement is TextBox or ComboBox or MenuItem)
+        {
+            return false;
+        }
+
+        var control = FindVisualChildren<FilePaneControl>(this)
+            .FirstOrDefault(candidate =>
+                candidate.IsVisible &&
+                ReferenceEquals(candidate.DataContext, pane));
+        _pendingFileListNavigationPane = null;
+        if (control is null)
+        {
+            return false;
+        }
+
+        e.Handled = true;
+        control.MoveFileSelectionFromKeyboard(
+            eventKey == Key.Down ? 1 : -1);
+        return true;
+    }
+
     private static bool TryGetFocusedFileGrid(
         out FilePaneViewModel pane,
         out DataGrid grid)
@@ -1948,6 +1998,23 @@ public partial class MainWindow
             .FirstOrDefault(candidate =>
                 candidate.IsVisible &&
                 ReferenceEquals(candidate.DataContext, activePane));
+        control?.FocusFirstFileItem();
+    }
+
+    private void RestoreFileListKeyboardNavigation(
+        FilePaneViewModel pane)
+    {
+        _pendingFileListNavigationPane = pane;
+        if (ViewModel?.ActivePane is not null &&
+            !ReferenceEquals(ViewModel.ActivePane, pane))
+        {
+            pane.RequestActivation();
+        }
+
+        var control = FindVisualChildren<FilePaneControl>(this)
+            .FirstOrDefault(candidate =>
+                candidate.IsVisible &&
+                ReferenceEquals(candidate.DataContext, pane));
         control?.FocusFirstFileItem();
     }
 

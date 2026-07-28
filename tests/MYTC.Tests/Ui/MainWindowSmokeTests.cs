@@ -32,6 +32,10 @@ public sealed class MainWindowSmokeTests
         var fixedHome = Directory.CreateDirectory(Path.Combine(sandbox, "fixed-home")).FullName;
         var nested = Directory.CreateDirectory(
             Path.Combine(fixedHome, "nested")).FullName;
+        Directory.CreateDirectory(Path.Combine(nested, "child"));
+        await File.WriteAllTextAsync(
+            Path.Combine(nested, "inside.txt"),
+            "inside");
         var away = Directory.CreateDirectory(Path.Combine(sandbox, "away")).FullName;
         await File.WriteAllTextAsync(Path.Combine(fixedHome, "sample.txt"), "sample");
         var directoryShortcut = Assert.Single(
@@ -285,6 +289,10 @@ public sealed class MainWindowSmokeTests
                             paneFileGrid.SelectedItem);
                         Assert.IsType<DataGridCell>(
                             Keyboard.FocusedElement);
+                        var focusSink = Assert.IsAssignableFrom<Button>(
+                            FindVisualChildren<Button>(window).First());
+                        focusSink.Focus();
+                        Keyboard.Focus(focusSink);
                         var downEvent = new KeyEventArgs(
                             Keyboard.PrimaryDevice,
                             PresentationSource.FromVisual(window),
@@ -293,9 +301,7 @@ public sealed class MainWindowSmokeTests
                         {
                             RoutedEvent = Keyboard.PreviewKeyDownEvent,
                         };
-                        Assert.IsAssignableFrom<UIElement>(
-                                Keyboard.FocusedElement)
-                            .RaiseEvent(downEvent);
+                        window.RaiseEvent(downEvent);
                         Assert.True(downEvent.Handled);
                         Assert.Equal(1, paneFileGrid.SelectedIndex);
                         Assert.Same(
@@ -320,6 +326,23 @@ public sealed class MainWindowSmokeTests
                         Assert.True(enterEvent.Handled);
                         await Task.Delay(100);
                         Assert.Equal(nested, pane.CurrentPath);
+                        Assert.Equal(0, paneFileGrid.SelectedIndex);
+                        focusSink.Focus();
+                        Keyboard.Focus(focusSink);
+                        var enterNavigationDownEvent = new KeyEventArgs(
+                            Keyboard.PrimaryDevice,
+                            PresentationSource.FromVisual(window),
+                            Environment.TickCount,
+                            Key.Down)
+                        {
+                            RoutedEvent = Keyboard.PreviewKeyDownEvent,
+                        };
+                        window.RaiseEvent(enterNavigationDownEvent);
+                        Assert.True(enterNavigationDownEvent.Handled);
+                        Assert.Equal(1, paneFileGrid.SelectedIndex);
+                        Assert.Same(
+                            pane.Items[1],
+                            paneFileGrid.SelectedItem);
                         await pane.NavigateAsync(fixedHome);
                         Assert.Contains(
                             FindVisualChildren<Image>(window),

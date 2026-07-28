@@ -528,6 +528,11 @@ public partial class FilePaneControl
         SelectAndFocusFileItem(0);
     }
 
+    public void MoveFileSelectionFromKeyboard(int offset)
+    {
+        MoveFileGridSelection(offset);
+    }
+
     private void MoveFileGridSelection(int offset)
     {
         if (FileGrid.Items.Count == 0)

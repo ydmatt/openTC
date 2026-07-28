@@ -1920,8 +1920,12 @@ public partial class MainWindow
         KeyEventArgs e,
         Key eventKey)
     {
+        var isPlainNavigation = Keyboard.Modifiers == ModifierKeys.None;
+        var isExtendSelection =
+            Keyboard.Modifiers == ModifierKeys.Shift &&
+            eventKey is Key.Up or Key.Down;
         if (_fileListKeyboardPane is null ||
-            Keyboard.Modifiers != ModifierKeys.None ||
+            (!isPlainNavigation && !isExtendSelection) ||
             IsFileListKeyboardInputFocused())
         {
             return false;
@@ -1946,8 +1950,17 @@ public partial class MainWindow
             case Key.Down:
                 e.Handled = true;
                 pane.RequestActivation();
-                control.MoveFileSelectionFromKeyboard(
-                    eventKey == Key.Down ? 1 : -1);
+                if (isExtendSelection)
+                {
+                    control.ExtendFileSelectionFromKeyboard(
+                        eventKey == Key.Down ? 1 : -1);
+                }
+                else
+                {
+                    control.MoveFileSelectionFromKeyboard(
+                        eventKey == Key.Down ? 1 : -1);
+                }
+
                 return true;
             case Key.Enter when !e.IsRepeat &&
                 pane.SelectedItem is { } entry:

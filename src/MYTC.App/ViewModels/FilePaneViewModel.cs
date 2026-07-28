@@ -232,6 +232,11 @@ public sealed class FilePaneViewModel : ObservableObject, IDisposable
         SelectedItem = SelectedItems.FirstOrDefault();
     }
 
+    public void UpdateSelectedItems(IEnumerable<FileSystemEntry> entries)
+    {
+        SelectedItems = entries.ToArray();
+    }
+
     public async Task OpenEntryAsync(FileSystemEntry? entry)
     {
         if (entry is null)

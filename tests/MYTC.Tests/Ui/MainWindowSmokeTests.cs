@@ -38,6 +38,7 @@ public sealed class MainWindowSmokeTests
             "inside");
         var away = Directory.CreateDirectory(Path.Combine(sandbox, "away")).FullName;
         await File.WriteAllTextAsync(Path.Combine(fixedHome, "sample.txt"), "sample");
+        await File.WriteAllTextAsync(Path.Combine(fixedHome, "another.txt"), "another");
         var directoryShortcut = Assert.Single(
             await new ShellShortcutCreationService().CreateAsync(
                 [away],
@@ -403,6 +404,19 @@ public sealed class MainWindowSmokeTests
                         Assert.True(switchedPaneDownEvent.Handled);
                         Assert.Equal(1, switchedPaneGrid.SelectedIndex);
                         Assert.Equal(0, paneFileGrid.SelectedIndex);
+                        switchedPaneControl.ExtendFileSelectionFromKeyboard(1);
+                        Assert.Equal(2, switchedPaneGrid.SelectedItems.Count);
+                        Assert.Contains(
+                            switchedPaneGrid.Items[1],
+                            switchedPaneGrid.SelectedItems.Cast<object>());
+                        Assert.Contains(
+                            switchedPaneGrid.Items[2],
+                            switchedPaneGrid.SelectedItems.Cast<object>());
+                        switchedPaneControl.ExtendFileSelectionFromKeyboard(1);
+                        Assert.Equal(3, switchedPaneGrid.SelectedItems.Count);
+                        Assert.Contains(
+                            switchedPaneGrid.Items[3],
+                            switchedPaneGrid.SelectedItems.Cast<object>());
                         await pane.NavigateAsync(fixedHome);
                         Assert.Contains(
                             FindVisualChildren<Image>(window),

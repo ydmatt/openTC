@@ -19,6 +19,9 @@ public partial class FilePaneControl
     private Point _tabDragStart;
     private FileTabViewModel? _tabDragCandidate;
     private FrameworkElement? _tabDragSource;
+    private int _keyboardSelectionAnchorIndex = -1;
+    private int _keyboardSelectionCaretIndex = -1;
+    private bool _applyingKeyboardSelection;
 
     public FilePaneControl()
     {
@@ -324,6 +327,12 @@ public partial class FilePaneControl
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (!_applyingKeyboardSelection)
+        {
+            _keyboardSelectionAnchorIndex = FileGrid.SelectedIndex;
+            _keyboardSelectionCaretIndex = FileGrid.SelectedIndex;
+        }
+
         if (ViewModel is not null)
         {
             ViewModel.SetSelectedItems(
@@ -335,8 +344,19 @@ public partial class FilePaneControl
         object sender,
         KeyEventArgs e)
     {
-        if (Keyboard.Modifiers != ModifierKeys.None ||
-            e.Key is not (Key.Up or Key.Down))
+        if (e.Key is not (Key.Up or Key.Down))
+        {
+            return;
+        }
+
+        if (Keyboard.Modifiers == ModifierKeys.Shift)
+        {
+            e.Handled = true;
+            ExtendFileSelectionFromKeyboard(e.Key == Key.Down ? 1 : -1);
+            return;
+        }
+
+        if (Keyboard.Modifiers != ModifierKeys.None)
         {
             return;
         }
@@ -533,6 +553,65 @@ public partial class FilePaneControl
         MoveFileGridSelection(offset);
     }
 
+    public void ExtendFileSelectionFromKeyboard(int offset)
+    {
+        if (FileGrid.Items.Count == 0 || offset == 0)
+        {
+            return;
+        }
+
+        var currentIndex = FileGrid.SelectedIndex;
+        if (_keyboardSelectionAnchorIndex < 0 ||
+            _keyboardSelectionAnchorIndex >= FileGrid.Items.Count ||
+            _keyboardSelectionCaretIndex < 0 ||
+            _keyboardSelectionCaretIndex >= FileGrid.Items.Count ||
+            !FileGrid.SelectedItems.Contains(
+                FileGrid.Items[_keyboardSelectionAnchorIndex]))
+        {
+            var initialIndex = currentIndex >= 0
+                ? currentIndex
+                : offset > 0
+                    ? 0
+                    : FileGrid.Items.Count - 1;
+            _keyboardSelectionAnchorIndex = initialIndex;
+            _keyboardSelectionCaretIndex = initialIndex;
+        }
+
+        var nextIndex = Math.Clamp(
+            _keyboardSelectionCaretIndex + offset,
+            0,
+            FileGrid.Items.Count - 1);
+        _applyingKeyboardSelection = true;
+        try
+        {
+            FileGrid.SelectedItems.Clear();
+            for (var index = Math.Min(
+                     _keyboardSelectionAnchorIndex,
+                     nextIndex);
+                 index <= Math.Max(
+                     _keyboardSelectionAnchorIndex,
+                     nextIndex);
+                 index++)
+            {
+                FileGrid.SelectedItems.Add(FileGrid.Items[index]);
+            }
+
+            FileGrid.CurrentItem = FileGrid.Items[nextIndex];
+            _keyboardSelectionCaretIndex = nextIndex;
+            if (ViewModel is not null)
+            {
+                ViewModel.UpdateSelectedItems(
+                    FileGrid.SelectedItems.Cast<FileSystemEntry>());
+            }
+        }
+        finally
+        {
+            _applyingKeyboardSelection = false;
+        }
+
+        FocusFileItem(nextIndex);
+    }
+
     private void MoveFileGridSelection(int offset)
     {
         if (FileGrid.Items.Count == 0)
@@ -558,9 +637,25 @@ public partial class FilePaneControl
 
     private void SelectAndFocusFileItem(int index)
     {
-        FileGrid.SelectedItems.Clear();
-        FileGrid.SelectedIndex = index;
-        FileGrid.CurrentItem = FileGrid.Items[index];
+        _applyingKeyboardSelection = true;
+        try
+        {
+            FileGrid.SelectedItems.Clear();
+            FileGrid.SelectedIndex = index;
+            FileGrid.CurrentItem = FileGrid.Items[index];
+            _keyboardSelectionAnchorIndex = index;
+            _keyboardSelectionCaretIndex = index;
+        }
+        finally
+        {
+            _applyingKeyboardSelection = false;
+        }
+
+        FocusFileItem(index);
+    }
+
+    private void FocusFileItem(int index)
+    {
         if (FileGrid.Columns.Count > 0)
         {
             FileGrid.CurrentColumn = FileGrid.Columns[0];

@@ -302,9 +302,9 @@ public partial class MainWindow
                 if (ViewModel.ActivePane is { } upPane)
                 {
                     await upPane.NavigateUpAsync();
-                    _ = Dispatcher.BeginInvoke(
-                        System.Windows.Threading.DispatcherPriority.Input,
-                        FocusActivePaneFirstItem);
+                    await Dispatcher.InvokeAsync(
+                        FocusActivePaneFirstItem,
+                        System.Windows.Threading.DispatcherPriority.ContextIdle);
                 }
 
                 break;

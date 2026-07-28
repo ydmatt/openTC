@@ -39,16 +39,22 @@ try {
         -Value "user-data-must-survive" `
         -Encoding utf8
 
-    $guidePath = Join-Path $stagedRoot "PRODUCTION-GUIDE.txt"
-    Add-Content `
-        -LiteralPath $guidePath `
-        -Value "`r`nUPDATER-SMOKE-V1.0.1" `
-        -Encoding utf8
-
     $manifestPath = Join-Path $stagedRoot "MYTC.update.json"
     $manifest = Get-Content -LiteralPath $manifestPath -Raw |
         ConvertFrom-Json
-    $manifest.version = "1.0.1"
+    $currentVersion = [version]$manifest.version
+    $targetVersion = [version]::new(
+        $currentVersion.Major,
+        $currentVersion.Minor,
+        $currentVersion.Build + 1)
+    $targetVersionText = $targetVersion.ToString(3)
+    $manifest.version = $targetVersionText
+
+    $guidePath = Join-Path $stagedRoot "PRODUCTION-GUIDE.txt"
+    Add-Content `
+        -LiteralPath $guidePath `
+        -Value "`r`nUPDATER-SMOKE-V$targetVersionText" `
+        -Encoding utf8
     $guideEntry = $manifest.files |
         Where-Object {
             $_.path -eq "PRODUCTION-GUIDE.txt"
@@ -97,7 +103,7 @@ try {
             Join-Path $installRoot "MYTC.update.json") `
         -Raw |
         ConvertFrom-Json
-    if ($installedManifest.version -ne "1.0.1") {
+    if ($installedManifest.version -ne $targetVersionText) {
         throw "Installed manifest version was not updated."
     }
 
@@ -105,7 +111,8 @@ try {
         -LiteralPath (
             Join-Path $installRoot "PRODUCTION-GUIDE.txt") `
         -Raw
-    if (-not $guideText.Contains("UPDATER-SMOKE-V1.0.1")) {
+    if (-not $guideText.Contains(
+            "UPDATER-SMOKE-V$targetVersionText")) {
         throw "Updated file content was not installed."
     }
 

@@ -179,6 +179,7 @@
                           AllowDrop="True"
                           Sorting="OnSorting"
                           SelectionChanged="OnSelectionChanged"
+                          PreviewKeyDown="OnFileGridPreviewKeyDown"
                           PreviewMouseLeftButtonDown="OnFileGridMouseLeftButtonDown"
                           PreviewMouseRightButtonDown="OnFileGridMouseRightButtonDown"
                           MouseMove="OnFileGridMouseMove"

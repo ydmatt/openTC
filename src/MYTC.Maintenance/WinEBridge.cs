@@ -11,12 +11,9 @@ internal static class WinEBridge
     private const int WmKeyUp = 0x0101;
     private const int WmSysKeyDown = 0x0104;
     private const int WmSysKeyUp = 0x0105;
-    private const int VkE = 0x45;
-    private const byte VkF24 = 0x87;
-    private const int VkLWin = 0x5B;
-    private const int VkRWin = 0x5C;
-    private const uint KeyEventFKeyUp = 0x0002;
     private const string MutexName = @"Local\MYTC.WinEBridge";
+    private static readonly IntPtr ReplayMarker =
+        new(unchecked((long)0x4D59544357494E45UL));
 
     public static int Run()
     {
@@ -55,8 +52,8 @@ internal static class WinEBridge
         private readonly IntPtr _hook;
         private readonly EventWaitHandle _exitEvent;
         private readonly System.Windows.Forms.Timer _exitTimer;
+        private readonly WinEKeyInterceptor _keyInterceptor = new();
         private int _launchInProgress;
-        private bool _suppressEUntilKeyUp;
 
         public BridgeApplicationContext()
         {
@@ -122,7 +119,7 @@ internal static class WinEBridge
                 }
 
                 var keyboard = Marshal.PtrToStructure<KbdLlHookStruct>(data);
-                if (keyboard.VirtualKeyCode != VkE)
+                if (keyboard.ExtraInfo == ReplayMarker)
                 {
                     return CallNextHookEx(
                         _hook,
@@ -132,23 +129,38 @@ internal static class WinEBridge
                 }
 
                 var messageId = message.ToInt32();
-                if (messageId is WmKeyDown or WmSysKeyDown &&
-                    IsWindowsKeyDown())
+                var transition = messageId switch
                 {
-                    if (!_suppressEUntilKeyUp)
-                    {
-                        _suppressEUntilKeyUp = true;
-                        MarkWindowsShortcutAsHandled();
-                        QueueLaunch();
-                    }
-
-                    return new IntPtr(1);
+                    WmKeyDown or WmSysKeyDown =>
+                        KeyboardTransition.KeyDown,
+                    WmKeyUp or WmSysKeyUp =>
+                        KeyboardTransition.KeyUp,
+                    _ => (KeyboardTransition?)null,
+                };
+                if (transition is null)
+                {
+                    return CallNextHookEx(
+                        _hook,
+                        code,
+                        message,
+                        data);
                 }
 
-                if (messageId is WmKeyUp or WmSysKeyUp &&
-                    _suppressEUntilKeyUp)
+                var decision = _keyInterceptor.Process(
+                    keyboard.VirtualKeyCode,
+                    transition.Value);
+                if (decision.ReplayWindowsKeyDown is { } replayKey)
                 {
-                    _suppressEUntilKeyUp = false;
+                    ReplayWindowsKeyDown(replayKey);
+                }
+
+                if (decision.LaunchMytc)
+                {
+                    QueueLaunch();
+                }
+
+                if (decision.Suppress)
+                {
                     return new IntPtr(1);
                 }
             }
@@ -190,24 +202,13 @@ internal static class WinEBridge
             });
         }
 
-        private static bool IsWindowsKeyDown()
+        private static void ReplayWindowsKeyDown(int virtualKey)
         {
-            return (GetAsyncKeyState(VkLWin) & 0x8000) != 0 ||
-                (GetAsyncKeyState(VkRWin) & 0x8000) != 0;
-        }
-
-        private static void MarkWindowsShortcutAsHandled()
-        {
-            // The E key itself is suppressed so Explorer cannot also open.
-            // Let Windows see an otherwise unused F24 chord while Win is
-            // physically held; this prevents the later Win-key release from
-            // being interpreted as a standalone press that opens Start.
-            keybd_event(VkF24, 0, 0, UIntPtr.Zero);
-            keybd_event(
-                VkF24,
+            KeybdEvent(
+                checked((byte)virtualKey),
                 0,
-                KeyEventFKeyUp,
-                UIntPtr.Zero);
+                0,
+                ReplayMarker);
         }
     }
 
@@ -246,15 +247,14 @@ internal static class WinEBridge
         IntPtr message,
         IntPtr data);
 
-    [DllImport("user32.dll")]
-    private static extern short GetAsyncKeyState(int virtualKey);
-
-    [DllImport("user32.dll")]
-    private static extern void keybd_event(
+    [DllImport(
+        "user32.dll",
+        EntryPoint = "keybd_event")]
+    private static extern void KeybdEvent(
         byte virtualKey,
         byte scanCode,
         uint flags,
-        UIntPtr extraInfo);
+        IntPtr extraInfo);
 
     [DllImport(
         "kernel32.dll",

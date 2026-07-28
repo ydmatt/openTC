@@ -331,6 +331,20 @@ public partial class FilePaneControl
         }
     }
 
+    private void OnFileGridPreviewKeyDown(
+        object sender,
+        KeyEventArgs e)
+    {
+        if (Keyboard.Modifiers != ModifierKeys.None ||
+            e.Key is not (Key.Up or Key.Down))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        MoveFileGridSelection(e.Key == Key.Down ? 1 : -1);
+    }
+
     private void OnFileGridMouseLeftButtonDown(
         object sender,
         MouseButtonEventArgs e)
@@ -511,17 +525,47 @@ public partial class FilePaneControl
             return;
         }
 
+        SelectAndFocusFileItem(0);
+    }
+
+    private void MoveFileGridSelection(int offset)
+    {
+        if (FileGrid.Items.Count == 0)
+        {
+            FileGrid.Focus();
+            Keyboard.Focus(FileGrid);
+            return;
+        }
+
+        var currentIndex = FileGrid.SelectedIndex;
+        if (currentIndex < 0)
+        {
+            currentIndex = offset > 0
+                ? -1
+                : FileGrid.Items.Count;
+        }
+
+        SelectAndFocusFileItem(Math.Clamp(
+            currentIndex + offset,
+            0,
+            FileGrid.Items.Count - 1));
+    }
+
+    private void SelectAndFocusFileItem(int index)
+    {
         FileGrid.SelectedItems.Clear();
-        FileGrid.SelectedIndex = 0;
-        FileGrid.CurrentItem = FileGrid.Items[0];
+        FileGrid.SelectedIndex = index;
+        FileGrid.CurrentItem = FileGrid.Items[index];
         if (FileGrid.Columns.Count > 0)
         {
             FileGrid.CurrentColumn = FileGrid.Columns[0];
         }
 
-        FileGrid.ScrollIntoView(FileGrid.Items[0]);
+        FileGrid.ScrollIntoView(
+            FileGrid.Items[index],
+            FileGrid.CurrentColumn);
         FileGrid.UpdateLayout();
-        if (FileGrid.ItemContainerGenerator.ContainerFromIndex(0)
+        if (FileGrid.ItemContainerGenerator.ContainerFromIndex(index)
             is DataGridRow row)
         {
             row.Focus();

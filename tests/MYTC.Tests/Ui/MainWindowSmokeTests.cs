@@ -276,6 +276,22 @@ public sealed class MainWindowSmokeTests
                             paneFileGrid.SelectedItem);
                         Assert.IsType<DataGridCell>(
                             Keyboard.FocusedElement);
+                        var downEvent = new KeyEventArgs(
+                            Keyboard.PrimaryDevice,
+                            PresentationSource.FromVisual(window),
+                            Environment.TickCount,
+                            Key.Down)
+                        {
+                            RoutedEvent = Keyboard.PreviewKeyDownEvent,
+                        };
+                        Assert.IsAssignableFrom<UIElement>(
+                                Keyboard.FocusedElement)
+                            .RaiseEvent(downEvent);
+                        Assert.True(downEvent.Handled);
+                        Assert.Equal(1, paneFileGrid.SelectedIndex);
+                        Assert.Same(
+                            pane.Items[1],
+                            paneFileGrid.SelectedItem);
                         var nestedEntry = Assert.Single(
                             pane.Items,
                             item => item.Kind == EntryKind.Directory &&

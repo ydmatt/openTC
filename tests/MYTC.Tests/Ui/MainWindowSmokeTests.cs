@@ -369,6 +369,40 @@ public sealed class MainWindowSmokeTests
                         Assert.True(enterNavigationBackspaceEvent.Handled);
                         await Task.Delay(100);
                         Assert.Equal(fixedHome, pane.CurrentPath);
+                        var switchedPane = viewModel.Panes[1];
+                        await switchedPane.NavigateAsync(fixedHome);
+                        var switchedPaneControl =
+                            FindVisualChildren<FilePaneControl>(window)
+                                .First(control =>
+                                    ReferenceEquals(
+                                        control.DataContext,
+                                        switchedPane));
+                        var switchedPaneGrid = Assert.IsType<DataGrid>(
+                            switchedPaneControl.FindName("FileGrid"));
+                        switchedPaneGrid.SelectedIndex = 0;
+                        var switchPaneClick = new MouseButtonEventArgs(
+                            Mouse.PrimaryDevice,
+                            Environment.TickCount,
+                            MouseButton.Left)
+                        {
+                            RoutedEvent = Mouse.PreviewMouseDownEvent,
+                        };
+                        switchedPaneControl.RaiseEvent(switchPaneClick);
+                        Assert.Same(switchedPane, viewModel.ActivePane);
+                        focusSink.Focus();
+                        Keyboard.Focus(focusSink);
+                        var switchedPaneDownEvent = new KeyEventArgs(
+                            Keyboard.PrimaryDevice,
+                            PresentationSource.FromVisual(window),
+                            Environment.TickCount,
+                            Key.Down)
+                        {
+                            RoutedEvent = Keyboard.PreviewKeyDownEvent,
+                        };
+                        window.RaiseEvent(switchedPaneDownEvent);
+                        Assert.True(switchedPaneDownEvent.Handled);
+                        Assert.Equal(1, switchedPaneGrid.SelectedIndex);
+                        Assert.Equal(0, paneFileGrid.SelectedIndex);
                         await pane.NavigateAsync(fixedHome);
                         Assert.Contains(
                             FindVisualChildren<Image>(window),

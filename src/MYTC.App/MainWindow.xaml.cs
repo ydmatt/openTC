@@ -1920,12 +1920,15 @@ public partial class MainWindow
         KeyEventArgs e,
         Key eventKey)
     {
-        if (_fileListKeyboardPane is not { } pane ||
+        if (_fileListKeyboardPane is null ||
             Keyboard.Modifiers != ModifierKeys.None ||
             IsFileListKeyboardInputFocused())
         {
             return false;
         }
+
+        var pane = ViewModel?.ActivePane ?? _fileListKeyboardPane;
+        _fileListKeyboardPane = pane;
 
         var control = FindVisualChildren<FilePaneControl>(this)
             .FirstOrDefault(candidate =>

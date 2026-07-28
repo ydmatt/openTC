@@ -91,7 +91,7 @@
                 <MenuItem Header="标签右键菜单设置…"
                           Click="OnTabContextMenuSettingsClick" />
                 <Separator />
-                <MenuItem Header="Windows 默认文件夹接管与恢复…"
+                <MenuItem Header="Win+E 启动 MYTC 设置…"
                           Click="OnShellIntegrationClick" />
                 <MenuItem Header="从升级包升级…"
                           Click="OnInstallUpdateClick" />

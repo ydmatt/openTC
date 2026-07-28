@@ -6,6 +6,7 @@ using MYTC.App.Windows;
 using MYTC.Infrastructure.Configuration;
 using MYTC.Infrastructure.Drives;
 using MYTC.Infrastructure.Files;
+using MYTC.Infrastructure.Shell;
 
 namespace MYTC.App;
 
@@ -43,6 +44,19 @@ public partial class App
 
         _singleInstance.RequestReceived += OnLaunchRequestReceived;
         _singleInstance.StartListening();
+
+        if (!e.Args.Contains("--data-dir", StringComparer.OrdinalIgnoreCase))
+        {
+            try
+            {
+                _ = new ShellIntegrationService()
+                    .MigrateLegacyFolderAssociationToWinEOnly();
+            }
+            catch
+            {
+                // Failed migration must never prevent MYTC itself from starting.
+            }
+        }
 
         var driveService = new DriveService();
         var shortcutStore = new JsonShortcutStore(dataRoot);

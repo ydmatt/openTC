@@ -9,15 +9,15 @@
 
 从 `v0.1.7` 迁移时，先关闭旧 MYTC，再把旧目录中的 `data` 复制到新安装目录。`v1.0.0` 是首次带程序内升级功能的版本，所以这一步只需手动做一次。
 
-## 接管或恢复 Windows 资源管理器
+## 配置或停用 Win+E 启动 MYTC
 
 1. 先确认 MYTC 已位于不会再移动的本机目录。
-2. 选择“选项 → Windows 默认文件夹接管与恢复”。
-3. 点击“注册为默认文件夹程序（含 Win+E）”。
+2. 选择“选项 → Win+E 启动 MYTC 设置”。
+3. 点击“启用 Win+E 启动 MYTC”。
 
-接管后，普通文件夹、磁盘和 Win+E 会进入 MYTC。Windows 桌面、任务栏和登录外壳仍由 Explorer 管理。
+启用后，Win+E 会启动 MYTC；但 Windows 资源管理器中双击文件夹、按 Enter、磁盘打开等操作仍由 Explorer 管理，二者互不干扰。
 
-如果不满意，直接运行安装目录中的 `MYTC.Maintenance.exe`，点击“恢复 Windows 资源管理器”。即使 `MYTC.exe` 无法启动，也可独立执行恢复。恢复前的注册表值保存在 `%LocalAppData%\MYTC\shell\registration-backup.json`。
+如需恢复 Win+E 的系统默认行为，直接运行安装目录中的 `MYTC.Maintenance.exe`，点击“停用 Win+E 桥接”。即使 `MYTC.exe` 无法启动，也可独立执行。旧版文件夹关联的注册前备份保存在 `%LocalAppData%\MYTC\shell\registration-backup.json`，新版本会在首次正常启动时自动迁移。
 
 ## 从升级包升级
 

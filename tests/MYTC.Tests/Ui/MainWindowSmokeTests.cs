@@ -307,13 +307,27 @@ public sealed class MainWindowSmokeTests
                         Assert.Same(
                             pane.Items[1],
                             paneFileGrid.SelectedItem);
+                        var repeatedDownEvent = new KeyEventArgs(
+                            Keyboard.PrimaryDevice,
+                            PresentationSource.FromVisual(window),
+                            Environment.TickCount,
+                            Key.Down)
+                        {
+                            RoutedEvent = Keyboard.PreviewKeyDownEvent,
+                        };
+                        window.RaiseEvent(repeatedDownEvent);
+                        Assert.True(repeatedDownEvent.Handled);
+                        Assert.Equal(2, paneFileGrid.SelectedIndex);
+                        Assert.Same(
+                            pane.Items[2],
+                            paneFileGrid.SelectedItem);
                         var nestedEntry = Assert.Single(
                             pane.Items,
                             item => item.Kind == EntryKind.Directory &&
                                 item.Name == "nested");
                         paneFileGrid.SelectedItem = nestedEntry;
-                        paneFileGrid.Focus();
-                        Keyboard.Focus(paneFileGrid);
+                        focusSink.Focus();
+                        Keyboard.Focus(focusSink);
                         var enterEvent = new KeyEventArgs(
                             Keyboard.PrimaryDevice,
                             PresentationSource.FromVisual(window),
@@ -322,7 +336,7 @@ public sealed class MainWindowSmokeTests
                         {
                             RoutedEvent = Keyboard.PreviewKeyDownEvent,
                         };
-                        paneFileGrid.RaiseEvent(enterEvent);
+                        window.RaiseEvent(enterEvent);
                         Assert.True(enterEvent.Handled);
                         await Task.Delay(100);
                         Assert.Equal(nested, pane.CurrentPath);
@@ -343,6 +357,18 @@ public sealed class MainWindowSmokeTests
                         Assert.Same(
                             pane.Items[1],
                             paneFileGrid.SelectedItem);
+                        var enterNavigationBackspaceEvent = new KeyEventArgs(
+                            Keyboard.PrimaryDevice,
+                            PresentationSource.FromVisual(window),
+                            Environment.TickCount,
+                            Key.Back)
+                        {
+                            RoutedEvent = Keyboard.PreviewKeyDownEvent,
+                        };
+                        window.RaiseEvent(enterNavigationBackspaceEvent);
+                        Assert.True(enterNavigationBackspaceEvent.Handled);
+                        await Task.Delay(100);
+                        Assert.Equal(fixedHome, pane.CurrentPath);
                         await pane.NavigateAsync(fixedHome);
                         Assert.Contains(
                             FindVisualChildren<Image>(window),

@@ -63,12 +63,12 @@ public sealed class ShellIntegrationService
 
         var registeredPath = ParseExecutableFromCommand(command);
         var description = folderDefault && bridgeEnabled
-            ? "普通文件夹、磁盘和 Win+E 已由 MYTC 接管。"
+            ? "检测到旧版文件夹接管；请启动 MYTC 或点击“启用 Win+E 启动 MYTC”完成迁移。"
             : folderDefault
-                ? "普通文件夹已接管；Win+E 桥接未启用。"
+                ? "检测到旧版文件夹接管；Win+E 桥接未启用。"
                 : bridgeEnabled
-                    ? "Win+E 桥接已启用；普通文件夹尚未设为默认。"
-                    : "Windows 资源管理器保持默认。";
+                    ? "Win+E 会启动 MYTC；资源管理器中的文件夹仍由 Windows 资源管理器打开。"
+                    : "Windows 资源管理器保持默认；Win+E 未配置为启动 MYTC。";
         return new ShellIntegrationStatus(
             folderDefault,
             bridgeEnabled,
@@ -126,6 +126,7 @@ public sealed class ShellIntegrationService
 
         try
         {
+            RestoreLegacyFolderDefaults(backup.Values);
             WriteVerb(
                 DirectoryShellKey,
                 fullExecutable,
@@ -143,14 +144,6 @@ public sealed class ShellIntegrationService
                 fullExecutable,
                 "%V");
 
-            SetStringValue(
-                DirectoryShellKey,
-                string.Empty,
-                ShellIntegrationConstants.VerbName);
-            SetStringValue(
-                DriveShellKey,
-                string.Empty,
-                ShellIntegrationConstants.VerbName);
             SetStringValue(
                 RunKey,
                 ShellIntegrationConstants.BridgeRunValueName,
@@ -173,6 +166,21 @@ public sealed class ShellIntegrationService
         StartBridge(fullMaintenance);
     }
 
+    public bool MigrateLegacyFolderAssociationToWinEOnly()
+    {
+        if (!IsFolderDefaultOwnedByMyTc())
+        {
+            return false;
+        }
+
+        var backup = File.Exists(_backupPath)
+            ? ReadBackup()
+            : null;
+        RestoreLegacyFolderDefaults(backup?.Values ?? []);
+        NotifyShellAssociationChanged();
+        return true;
+    }
+
     public void Restore()
     {
         ShellRegistrationBackup? backup = null;
@@ -185,6 +193,14 @@ public sealed class ShellIntegrationService
         if (backup is not null)
         {
             RestoreSnapshots(backup.Values);
+            RemoveValueIfEqual(
+                DirectoryShellKey,
+                string.Empty,
+                ShellIntegrationConstants.VerbName);
+            RemoveValueIfEqual(
+                DriveShellKey,
+                string.Empty,
+                ShellIntegrationConstants.VerbName);
             TryDeleteBackup();
         }
         else
@@ -377,6 +393,38 @@ public sealed class ShellIntegrationService
             };
             key.SetValue(snapshot.ValueName, value, kind);
         }
+    }
+
+    private static void RestoreLegacyFolderDefaults(
+        IEnumerable<RegistryValueSnapshot> snapshots)
+    {
+        var defaults = snapshots.Where(snapshot =>
+            StringComparer.Ordinal.Equals(snapshot.ValueName, string.Empty) &&
+            (StringComparer.OrdinalIgnoreCase.Equals(
+                snapshot.KeyPath,
+                DirectoryShellKey) ||
+             StringComparer.OrdinalIgnoreCase.Equals(
+                snapshot.KeyPath,
+                DriveShellKey)));
+        RestoreSnapshots(defaults);
+        RemoveValueIfEqual(
+            DirectoryShellKey,
+            string.Empty,
+            ShellIntegrationConstants.VerbName);
+        RemoveValueIfEqual(
+            DriveShellKey,
+            string.Empty,
+            ShellIntegrationConstants.VerbName);
+    }
+
+    private static bool IsFolderDefaultOwnedByMyTc()
+    {
+        return StringComparer.Ordinal.Equals(
+                   GetStringValue(DirectoryShellKey, string.Empty),
+                   ShellIntegrationConstants.VerbName) ||
+               StringComparer.Ordinal.Equals(
+                   GetStringValue(DriveShellKey, string.Empty),
+                   ShellIntegrationConstants.VerbName);
     }
 
     private static void WriteVerb(

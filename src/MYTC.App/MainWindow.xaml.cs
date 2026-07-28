@@ -47,7 +47,7 @@ public partial class MainWindow
     private bool _deleteKeyReady = true;
     private bool _suppressAltMenuActivation;
     private bool _allowClose;
-    private FilePaneViewModel? _pendingFileListNavigationPane;
+    private FilePaneViewModel? _fileListKeyboardPane;
 
     public MainWindow(
         IShortcutStore shortcutStore,
@@ -141,7 +141,7 @@ public partial class MainWindow
         }
 
         var eventKey = GetEventKey(e);
-        if (TryHandlePendingFileListArrow(e, eventKey))
+        if (await TryHandleFileListKeyboardCommandAsync(e, eventKey))
         {
             return;
         }
@@ -975,7 +975,7 @@ public partial class MainWindow
                 this,
                 "当前程序目录缺少 MYTC.Maintenance.exe。\n\n" +
                 "请使用完整的 MYTC 生产发布包。",
-                "无法启动 Windows 接管工具",
+                "无法启动 Win+E 设置工具",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             return;
@@ -992,7 +992,7 @@ public partial class MainWindow
         }
         catch (Exception exception)
         {
-            ShowOperationError("启动 Windows 接管工具失败", exception);
+            ShowOperationError("启动 Win+E 设置工具失败", exception);
         }
     }
 
@@ -1910,19 +1910,19 @@ public partial class MainWindow
         if (TryGetFocusedFileGrid(out var pane, out var grid))
         {
             pane.RequestActivation();
+            _fileListKeyboardPane = pane;
             pane.SetSelectedItems(
                 grid.SelectedItems.Cast<FileSystemEntry>());
         }
     }
 
-    private bool TryHandlePendingFileListArrow(
+    private async Task<bool> TryHandleFileListKeyboardCommandAsync(
         KeyEventArgs e,
         Key eventKey)
     {
-        if (_pendingFileListNavigationPane is not { } pane ||
+        if (_fileListKeyboardPane is not { } pane ||
             Keyboard.Modifiers != ModifierKeys.None ||
-            eventKey is not (Key.Up or Key.Down) ||
-            Keyboard.FocusedElement is TextBox or ComboBox or MenuItem)
+            IsFileListKeyboardInputFocused())
         {
             return false;
         }
@@ -1931,16 +1931,77 @@ public partial class MainWindow
             .FirstOrDefault(candidate =>
                 candidate.IsVisible &&
                 ReferenceEquals(candidate.DataContext, pane));
-        _pendingFileListNavigationPane = null;
         if (control is null)
         {
+            _fileListKeyboardPane = null;
             return false;
         }
 
-        e.Handled = true;
-        control.MoveFileSelectionFromKeyboard(
-            eventKey == Key.Down ? 1 : -1);
-        return true;
+        switch (eventKey)
+        {
+            case Key.Up:
+            case Key.Down:
+                e.Handled = true;
+                pane.RequestActivation();
+                control.MoveFileSelectionFromKeyboard(
+                    eventKey == Key.Down ? 1 : -1);
+                return true;
+            case Key.Enter when !e.IsRepeat &&
+                pane.SelectedItem is { } entry:
+            {
+                e.Handled = true;
+                pane.RequestActivation();
+                var previousPath = pane.CurrentPath;
+                await pane.OpenEntryAsync(entry);
+                if (!StringComparer.OrdinalIgnoreCase.Equals(
+                        previousPath,
+                        pane.CurrentPath))
+                {
+                    await Dispatcher.InvokeAsync(
+                        () => RestoreFileListKeyboardNavigation(pane),
+                        System.Windows.Threading.DispatcherPriority.ContextIdle);
+                }
+
+                return true;
+            }
+            case Key.Back when !e.IsRepeat &&
+                _shortcutManager.IsExactBinding(
+                    e,
+                    ShortcutAction.NavigateUp):
+            {
+                e.Handled = true;
+                pane.RequestActivation();
+                var previousPath = pane.CurrentPath;
+                await pane.NavigateUpAsync();
+                if (!StringComparer.OrdinalIgnoreCase.Equals(
+                        previousPath,
+                        pane.CurrentPath))
+                {
+                    await Dispatcher.InvokeAsync(
+                        () => RestoreFileListKeyboardNavigation(pane),
+                        System.Windows.Threading.DispatcherPriority.ContextIdle);
+                }
+
+                return true;
+            }
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsFileListKeyboardInputFocused()
+    {
+        for (var current = Keyboard.FocusedElement as DependencyObject;
+             current is not null;
+             current = GetParent(current))
+        {
+            if (current is TextBox or ComboBox or MenuItem or System.Windows.Controls.ContextMenu)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool TryGetFocusedFileGrid(
@@ -2004,7 +2065,7 @@ public partial class MainWindow
     private void RestoreFileListKeyboardNavigation(
         FilePaneViewModel pane)
     {
-        _pendingFileListNavigationPane = pane;
+        _fileListKeyboardPane = pane;
         if (ViewModel?.ActivePane is not null &&
             !ReferenceEquals(ViewModel.ActivePane, pane))
         {

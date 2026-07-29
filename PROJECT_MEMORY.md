@@ -318,4 +318,4 @@
 - 工作区工具栏（方案下拉、载入、保存、管理）和设置工具栏（快捷键、右键菜单、标签右键菜单设置）可在“查看”中独立显示/隐藏，状态作为全局偏好保存。
 - 用户截图中的“保存界面设置失败”根因：多个异步 UI 事件同时写固定的 `ui-preferences.json.tmp`。主窗口改用 `SemaphoreSlim` 串行写入；存储层改用带 GUID 的唯一临时文件并清理残留，避免临时文件互相抢占。
 - 发布验证：Release 全量测试 67/67 通过；单实例目录转发、外部更新器冒烟测试均通过。v1.0.10 主程序和维护程序文件版本均为 `1.0.10.0`。
-- 已投递 ZIP 至 `T:\mytc-updates\MYTC-v1.0.10-win-x64.zip`，完整目录至 `T:\mytc-releases\MYTC-v1.0.10-win-x64`；407 个文件逐项长度和 SHA-256 校验零差异，ZIP SHA-256 为 `BA5169CE1F741BB40ABDE888B66D463A04E78F9084048068522AD2BD9A8CDA7B`。提交号待本次提交后补充。
+- 已投递 ZIP 至 `T:\mytc-updates\MYTC-v1.0.10-win-x64.zip`，完整目录至 `T:\mytc-releases\MYTC-v1.0.10-win-x64`；407 个文件逐项长度和 SHA-256 校验零差异，ZIP SHA-256 为 `BA5169CE1F741BB40ABDE888B66D463A04E78F9084048068522AD2BD9A8CDA7B`。实现已提交并推送：`423e1cb`。

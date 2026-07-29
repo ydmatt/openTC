@@ -42,7 +42,18 @@ public sealed class JsonUiPreferencesStore(string dataRoot) : IUiPreferencesStor
                     SchemaVersion = UiPreferences.CurrentSchemaVersion,
                     ConfirmRecycleDelete = true,
                     StartWithWindows = false,
+                    IsWorkspaceToolbarVisible = true,
+                    IsSettingsToolbarVisible = true,
+                    LastWorkspaceName = null,
                 }
+                : preferences.SchemaVersion < 3
+                    ? preferences with
+                    {
+                        SchemaVersion = UiPreferences.CurrentSchemaVersion,
+                        IsWorkspaceToolbarVisible = true,
+                        IsSettingsToolbarVisible = true,
+                        LastWorkspaceName = null,
+                    }
                 : preferences with
                 {
                     SchemaVersion = UiPreferences.CurrentSchemaVersion,
@@ -61,20 +72,30 @@ public sealed class JsonUiPreferencesStore(string dataRoot) : IUiPreferencesStor
         var directory = Path.GetDirectoryName(_path)
             ?? throw new InvalidOperationException("无法确定界面设置目录。");
         Directory.CreateDirectory(directory);
-        var temporaryPath = _path + ".tmp";
-        await using (var stream = File.Create(temporaryPath))
+        var temporaryPath = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
         {
-            await JsonSerializer.SerializeAsync(
-                stream,
-                preferences with
-                {
-                    SchemaVersion = UiPreferences.CurrentSchemaVersion,
-                },
-                _options,
-                cancellationToken);
-            await stream.FlushAsync(cancellationToken);
-        }
+            await using (var stream = File.Create(temporaryPath))
+            {
+                await JsonSerializer.SerializeAsync(
+                    stream,
+                    preferences with
+                    {
+                        SchemaVersion = UiPreferences.CurrentSchemaVersion,
+                    },
+                    _options,
+                    cancellationToken);
+                await stream.FlushAsync(cancellationToken);
+            }
 
-        File.Move(temporaryPath, _path, overwrite: true);
+            File.Move(temporaryPath, _path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
     }
 }

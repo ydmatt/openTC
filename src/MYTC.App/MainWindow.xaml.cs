@@ -9,6 +9,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using Microsoft.Win32;
 using MYTC.App.Dialogs;
 using MYTC.App.Menus;
 using MYTC.App.Shortcuts;
@@ -37,6 +38,7 @@ public partial class MainWindow
     private readonly IAutoStartService _autoStartService;
     private readonly IManagedRecycleService _managedRecycleService;
     private readonly IRecycleBinRestoreService _recycleBinRestoreService;
+    private readonly SemaphoreSlim _uiPreferenceSaveGate = new(1, 1);
     private readonly Func<bool, int, bool>? _deleteConfirmationOverride;
     private ContextMenuConfiguration _contextMenuConfiguration =
         new(ContextMenuConfiguration.CurrentSchemaVersion, []);
@@ -87,6 +89,8 @@ public partial class MainWindow
 
     private MainWindowViewModel? ViewModel => DataContext as MainWindowViewModel;
 
+    public string? PreferredWorkspaceName => _uiPreferences.LastWorkspaceName;
+
     public async Task InitializeSettingsAsync()
     {
         var contextMenuTask = _contextMenuStore.LoadAsync();
@@ -110,9 +114,15 @@ public partial class MainWindow
 
         ApplyOperationToolbarPreference(
             _uiPreferences.IsOperationToolbarVisible);
+        ApplyWorkspaceToolbarPreference(
+            _uiPreferences.IsWorkspaceToolbarVisible);
+        ApplySettingsToolbarPreference(
+            _uiPreferences.IsSettingsToolbarVisible);
     }
 
-    public async Task HandleExternalLaunchAsync(string? openPath)
+    public async Task HandleExternalLaunchAsync(
+        string? openPath,
+        string? workspaceName = null)
     {
         if (WindowState == WindowState.Minimized)
         {
@@ -126,10 +136,17 @@ public partial class MainWindow
 
         BringWindowToForeground();
 
-        if (!string.IsNullOrWhiteSpace(openPath) &&
-            ViewModel is not null)
+        if (ViewModel is not null)
         {
-            await ViewModel.OpenExternalPathAsync(openPath);
+            if (!string.IsNullOrWhiteSpace(workspaceName))
+            {
+                _ = await ViewModel.LoadWorkspaceAsync(workspaceName);
+            }
+
+            if (!string.IsNullOrWhiteSpace(openPath))
+            {
+                await ViewModel.OpenExternalPathAsync(openPath);
+            }
         }
     }
 
@@ -902,7 +919,7 @@ public partial class MainWindow
             {
                 IsOperationToolbarVisible = isVisible,
             };
-            await _uiPreferencesStore.SaveAsync(_uiPreferences);
+            await SaveUiPreferencesAsync(_uiPreferences);
             ViewModel?.SetStatusMessage(
                 isVisible ? "操作工具栏已显示。" : "操作工具栏已隐藏。");
         }
@@ -912,6 +929,22 @@ public partial class MainWindow
             ApplyOperationToolbarPreference(!isVisible);
             ShowOperationError("保存界面设置失败", exception);
         }
+    }
+
+    private async void OnWorkspaceToolbarToggleClick(
+        object sender,
+        RoutedEventArgs e)
+    {
+        await SetWorkspaceToolbarVisibleAsync(
+            WorkspaceToolbarMenuItem.IsChecked);
+    }
+
+    private async void OnSettingsToolbarToggleClick(
+        object sender,
+        RoutedEventArgs e)
+    {
+        await SetSettingsToolbarVisibleAsync(
+            SettingsToolbarMenuItem.IsChecked);
     }
 
     private async void OnGlobalSettingsClick(
@@ -938,7 +971,7 @@ public partial class MainWindow
                 StartWithWindows = dialog.StartWithWindows,
                 ConfirmRecycleDelete = dialog.ConfirmRecycleDelete,
             };
-            await _uiPreferencesStore.SaveAsync(_uiPreferences);
+            await SaveUiPreferencesAsync(_uiPreferences);
             ViewModel?.SetStatusMessage("全局设置已保存并立即生效。");
         }
         catch (Exception exception)
@@ -1800,12 +1833,31 @@ public partial class MainWindow
 
         try
         {
-            await ViewModel.LoadSelectedWorkspaceAsync();
+            _ = await ViewModel.LoadSelectedWorkspaceAsync();
         }
         catch (Exception exception)
         {
             ShowOperationError("载入工作区失败", exception);
         }
+    }
+
+    private void OnManageWorkspacesClick(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+        {
+            return;
+        }
+
+        var dialog = new WorkspaceManagerDialog(
+            ViewModel.WorkspaceNames,
+            ViewModel.SelectedWorkspaceName)
+        {
+            Owner = this,
+        };
+        dialog.ImportRequested += OnWorkspaceImportRequested;
+        dialog.ExportRequested += OnWorkspaceExportRequested;
+        dialog.DeleteRequested += OnWorkspaceDeleteRequested;
+        _ = dialog.ShowDialog();
     }
 
     private void OnSplitterDragCompleted(object sender, DragCompletedEventArgs e)
@@ -1825,6 +1877,125 @@ public partial class MainWindow
         if (totalHeight > 0)
         {
             ViewModel.VerticalRatio = TopPaneRow.ActualHeight / totalHeight;
+        }
+    }
+
+    private async void OnWorkspaceImportRequested(object? sender, EventArgs e)
+    {
+        if (sender is not WorkspaceManagerDialog dialog || ViewModel is null)
+        {
+            return;
+        }
+
+        var picker = new OpenFileDialog
+        {
+            Title = "导入工作区方案",
+            Filter = "MYTC 工作区 (*.json)|*.json|所有文件 (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = false,
+        };
+        if (picker.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var importedName = await ViewModel.ImportWorkspaceAsync(
+                picker.FileName);
+            RefreshWorkspaceManager(dialog);
+            MessageBox.Show(
+                this,
+                $"已导入工作区“{importedName}”。",
+                "导入工作区",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception exception)
+        {
+            ShowOperationError("导入工作区失败", exception);
+        }
+    }
+
+    private async void OnWorkspaceExportRequested(
+        object? sender,
+        WorkspaceSelectionEventArgs e)
+    {
+        if (ViewModel is null)
+        {
+            return;
+        }
+
+        var picker = new SaveFileDialog
+        {
+            Title = "导出工作区方案",
+            Filter = "MYTC 工作区 (*.json)|*.json",
+            DefaultExt = ".json",
+            AddExtension = true,
+            FileName = $"{e.WorkspaceName}.json",
+            OverwritePrompt = true,
+        };
+        if (picker.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await ViewModel.ExportWorkspaceAsync(
+                e.WorkspaceName,
+                picker.FileName);
+            MessageBox.Show(
+                this,
+                $"已导出工作区“{e.WorkspaceName}”。",
+                "导出工作区",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception exception)
+        {
+            ShowOperationError("导出工作区失败", exception);
+        }
+    }
+
+    private async void OnWorkspaceDeleteRequested(
+        object? sender,
+        WorkspaceSelectionEventArgs e)
+    {
+        if (sender is not WorkspaceManagerDialog dialog || ViewModel is null)
+        {
+            return;
+        }
+
+        if (MessageBox.Show(
+                this,
+                $"确定删除工作区“{e.WorkspaceName}”吗？\n\n此操作不会删除其中的实际文件。",
+                "删除工作区",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            await ViewModel.DeleteWorkspaceAsync(e.WorkspaceName);
+            RefreshWorkspaceManager(dialog);
+        }
+        catch (Exception exception)
+        {
+            ShowOperationError("删除工作区失败", exception);
+        }
+    }
+
+    private static void RefreshWorkspaceManager(WorkspaceManagerDialog dialog)
+    {
+        if (dialog.Owner is MainWindow window && window.ViewModel is not null)
+        {
+            dialog.ReplaceWorkspaceNames(
+                window.ViewModel.WorkspaceNames,
+                window.ViewModel.SelectedWorkspaceName);
         }
     }
 
@@ -1859,13 +2030,33 @@ public partial class MainWindow
         if (_subscribedViewModel is not null)
         {
             _subscribedViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _subscribedViewModel.WorkspaceActivated -= OnWorkspaceActivated;
         }
 
         _subscribedViewModel = e.NewValue as MainWindowViewModel;
         if (_subscribedViewModel is not null)
         {
             _subscribedViewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _subscribedViewModel.WorkspaceActivated += OnWorkspaceActivated;
             Dispatcher.BeginInvoke(ApplyLayoutRatios);
+        }
+    }
+
+    private async void OnWorkspaceActivated(string? workspaceName)
+    {
+        var previous = _uiPreferences;
+        try
+        {
+            _uiPreferences = _uiPreferences with
+            {
+                LastWorkspaceName = workspaceName,
+            };
+            await SaveUiPreferencesAsync(_uiPreferences);
+        }
+        catch (Exception exception)
+        {
+            _uiPreferences = previous;
+            ShowOperationError("保存默认工作区失败", exception);
         }
     }
 
@@ -1903,6 +2094,79 @@ public partial class MainWindow
         OperationToolbarBorder.Visibility = isVisible
             ? Visibility.Visible
             : Visibility.Collapsed;
+    }
+
+    private async Task SetWorkspaceToolbarVisibleAsync(bool isVisible)
+    {
+        var previous = _uiPreferences;
+        ApplyWorkspaceToolbarPreference(isVisible);
+        try
+        {
+            _uiPreferences = _uiPreferences with
+            {
+                IsWorkspaceToolbarVisible = isVisible,
+            };
+            await SaveUiPreferencesAsync(_uiPreferences);
+            ViewModel?.SetStatusMessage(
+                isVisible ? "工作区工具栏已显示。" : "工作区工具栏已隐藏。");
+        }
+        catch (Exception exception)
+        {
+            _uiPreferences = previous;
+            ApplyWorkspaceToolbarPreference(previous.IsWorkspaceToolbarVisible);
+            ShowOperationError("保存界面设置失败", exception);
+        }
+    }
+
+    private async Task SetSettingsToolbarVisibleAsync(bool isVisible)
+    {
+        var previous = _uiPreferences;
+        ApplySettingsToolbarPreference(isVisible);
+        try
+        {
+            _uiPreferences = _uiPreferences with
+            {
+                IsSettingsToolbarVisible = isVisible,
+            };
+            await SaveUiPreferencesAsync(_uiPreferences);
+            ViewModel?.SetStatusMessage(
+                isVisible ? "设置工具栏已显示。" : "设置工具栏已隐藏。");
+        }
+        catch (Exception exception)
+        {
+            _uiPreferences = previous;
+            ApplySettingsToolbarPreference(previous.IsSettingsToolbarVisible);
+            ShowOperationError("保存界面设置失败", exception);
+        }
+    }
+
+    private void ApplyWorkspaceToolbarPreference(bool isVisible)
+    {
+        WorkspaceToolbarMenuItem.IsChecked = isVisible;
+        WorkspaceToolbar.Visibility = isVisible
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    private void ApplySettingsToolbarPreference(bool isVisible)
+    {
+        SettingsToolbarMenuItem.IsChecked = isVisible;
+        SettingsToolbar.Visibility = isVisible
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    private async Task SaveUiPreferencesAsync(UiPreferences preferences)
+    {
+        await _uiPreferenceSaveGate.WaitAsync();
+        try
+        {
+            await _uiPreferencesStore.SaveAsync(preferences);
+        }
+        finally
+        {
+            _uiPreferenceSaveGate.Release();
+        }
     }
 
     private void SynchronizeFocusedFilePaneSelection()

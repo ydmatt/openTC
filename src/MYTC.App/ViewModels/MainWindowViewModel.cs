@@ -62,6 +62,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     public RelayCommand CancelOperationCommand { get; }
 
+    public event Action<string?>? WorkspaceActivated;
+
     public string StatusMessage
     {
         get => _statusMessage;
@@ -127,15 +129,35 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Panes.FirstOrDefault(pane =>
             StringComparer.Ordinal.Equals(pane.Id, _focusState.TargetPaneId));
 
-    public async Task InitializeAsync()
+    public async Task InitializeAsync(string? startupWorkspaceName = null)
     {
-        var snapshot = await _workspaceStore.LoadSessionAsync();
+        WorkspaceSnapshot? snapshot = null;
+        var loadedStartupWorkspace = false;
+        if (!string.IsNullOrWhiteSpace(startupWorkspaceName))
+        {
+            snapshot = await _workspaceStore.LoadWorkspaceAsync(
+                startupWorkspaceName);
+            if (snapshot is not null)
+            {
+                SelectedWorkspaceName = startupWorkspaceName;
+                loadedStartupWorkspace = true;
+            }
+        }
+
+        snapshot ??= await _workspaceStore.LoadSessionAsync();
         snapshot ??= CreateDefaultWorkspace();
 
         await ApplyWorkspaceAsync(snapshot);
         await RefreshWorkspaceNamesAsync();
         _isInitialized = true;
-        StatusMessage = "已恢复会话；快捷键可在右上角设置中修改。";
+        if (loadedStartupWorkspace)
+        {
+            WorkspaceActivated?.Invoke(SelectedWorkspaceName);
+        }
+
+        StatusMessage = !loadedStartupWorkspace
+            ? "已恢复会话；快捷键可在右上角设置中修改。"
+            : $"已载入工作区“{SelectedWorkspaceName}”。";
     }
 
     public async Task SaveSessionAsync()
@@ -198,6 +220,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         await _workspaceStore.SaveWorkspaceAsync(name.Trim(), CaptureSnapshot(name.Trim()));
         await RefreshWorkspaceNamesAsync();
         SelectedWorkspaceName = name.Trim();
+        WorkspaceActivated?.Invoke(SelectedWorkspaceName);
         StatusMessage = $"工作区“{name.Trim()}”已保存";
     }
 
@@ -208,16 +231,59 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             return false;
         }
 
-        var snapshot = await _workspaceStore.LoadWorkspaceAsync(SelectedWorkspaceName);
+        return await LoadWorkspaceAsync(SelectedWorkspaceName);
+    }
+
+    public async Task<bool> LoadWorkspaceAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return false;
+        }
+
+        var snapshot = await _workspaceStore.LoadWorkspaceAsync(name);
         if (snapshot is null)
         {
-            StatusMessage = $"找不到工作区“{SelectedWorkspaceName}”";
+            StatusMessage = $"找不到工作区“{name}”";
             return false;
         }
 
         await ApplyWorkspaceAsync(snapshot);
-        StatusMessage = $"已载入工作区“{SelectedWorkspaceName}”";
+        SelectedWorkspaceName = name;
+        WorkspaceActivated?.Invoke(SelectedWorkspaceName);
+        StatusMessage = $"已载入工作区“{name}”";
         return true;
+    }
+
+    public async Task DeleteWorkspaceAsync(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        await _workspaceStore.DeleteWorkspaceAsync(name.Trim());
+        var wasSelected = StringComparer.OrdinalIgnoreCase.Equals(
+            SelectedWorkspaceName,
+            name.Trim());
+        await RefreshWorkspaceNamesAsync();
+        if (wasSelected)
+        {
+            SelectedWorkspaceName = null;
+            WorkspaceActivated?.Invoke(null);
+        }
+
+        StatusMessage = $"工作区“{name.Trim()}”已删除";
+    }
+
+    public Task ExportWorkspaceAsync(string name, string destinationPath)
+    {
+        return _workspaceStore.ExportWorkspaceAsync(name, destinationPath);
+    }
+
+    public async Task<string> ImportWorkspaceAsync(string sourcePath)
+    {
+        var name = await _workspaceStore.ImportWorkspaceAsync(sourcePath);
+        await RefreshWorkspaceNamesAsync();
+        SelectedWorkspaceName = name;
+        StatusMessage = $"已导入工作区“{name}”";
+        return name;
     }
 
     public bool HasTransferCollisions(
@@ -484,7 +550,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
         SelectedWorkspaceName = selected is not null && WorkspaceNames.Contains(selected)
             ? selected
-            : WorkspaceNames.FirstOrDefault();
+            : null;
     }
 
     private WorkspaceSnapshot CaptureSnapshot(string name)

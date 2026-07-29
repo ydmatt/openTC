@@ -368,12 +368,35 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
             UiPreferences.CurrentSchemaVersion,
             IsOperationToolbarVisible: true,
             ConfirmRecycleDelete: false,
-            StartWithWindows: true));
+            StartWithWindows: true,
+            IsWorkspaceToolbarVisible: false,
+            IsSettingsToolbarVisible: false,
+            LastWorkspaceName: "work"));
         var loaded = await store.LoadAsync();
 
         Assert.True(loaded.IsOperationToolbarVisible);
         Assert.False(loaded.ConfirmRecycleDelete);
         Assert.True(loaded.StartWithWindows);
+        Assert.False(loaded.IsWorkspaceToolbarVisible);
+        Assert.False(loaded.IsSettingsToolbarVisible);
+        Assert.Equal("work", loaded.LastWorkspaceName);
+    }
+
+    [Fact]
+    public async Task UiPreferencesStore_AllowsConcurrentSaves()
+    {
+        var store = new JsonUiPreferencesStore(_sandbox);
+        var saves = Enumerable.Range(0, 12)
+            .Select(index => store.SaveAsync(
+                UiPreferences.CreateDefault() with
+                {
+                    LastWorkspaceName = $"workspace-{index}",
+                }));
+
+        await Task.WhenAll(saves);
+
+        var loaded = await store.LoadAsync();
+        Assert.StartsWith("workspace-", loaded.LastWorkspaceName);
     }
 
     [Fact]

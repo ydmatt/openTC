@@ -30,6 +30,29 @@ public sealed class LaunchAndSingleInstanceTests : IDisposable
         Assert.Null(request.OpenPath);
     }
 
+    [Theory]
+    [InlineData("/test", "test")]
+    [InlineData("/work", "work")]
+    public void LaunchRequest_SlashWorkspace_SelectsWorkspace(
+        string argument,
+        string expectedWorkspace)
+    {
+        var request = LaunchRequest.Parse([argument]);
+
+        Assert.Null(request.OpenPath);
+        Assert.Equal(expectedWorkspace, request.WorkspaceName);
+    }
+
+    [Fact]
+    public void LaunchRequest_WorkspaceOption_CanBeCombinedWithOpenPath()
+    {
+        var request = LaunchRequest.Parse(
+            ["--workspace", "work", "--open", _sandbox]);
+
+        Assert.Equal("work", request.WorkspaceName);
+        Assert.Equal(Path.GetFullPath(_sandbox), request.OpenPath);
+    }
+
     [Fact]
     public async Task SecondInstance_ForwardsRequestToPrimary()
     {
@@ -43,7 +66,7 @@ public sealed class LaunchAndSingleInstanceTests : IDisposable
         primary.RequestReceived += request =>
             received.TrySetResult(request);
         primary.StartListening();
-        var expected = new LaunchRequest(_sandbox);
+        var expected = new LaunchRequest(_sandbox, "test");
 
         var sent = await secondary.SendAsync(
             expected,

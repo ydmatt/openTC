@@ -2,10 +2,12 @@ using System.IO;
 
 namespace MYTC.App.Startup;
 
-public sealed record LaunchRequest(string? OpenPath)
+public sealed record LaunchRequest(string? OpenPath, string? WorkspaceName)
 {
     public static LaunchRequest Parse(IReadOnlyList<string> arguments)
     {
+        string? openPath = null;
+        string? workspaceName = null;
         for (var index = 0; index < arguments.Count; index++)
         {
             if (StringComparer.OrdinalIgnoreCase.Equals(
@@ -13,8 +15,16 @@ public sealed record LaunchRequest(string? OpenPath)
                     "--open") &&
                 index + 1 < arguments.Count)
             {
-                return new LaunchRequest(
-                    NormalizeArgument(arguments[index + 1]));
+                openPath = NormalizeArgument(arguments[++index]);
+                continue;
+            }
+
+            if (StringComparer.OrdinalIgnoreCase.Equals(
+                    arguments[index],
+                    "--workspace") &&
+                index + 1 < arguments.Count)
+            {
+                workspaceName = NormalizeWorkspaceName(arguments[++index]);
             }
         }
 
@@ -23,7 +33,13 @@ public sealed record LaunchRequest(string? OpenPath)
             var argument = arguments[index];
             if (StringComparer.OrdinalIgnoreCase.Equals(
                     argument,
-                    "--data-dir"))
+                    "--data-dir") ||
+                StringComparer.OrdinalIgnoreCase.Equals(
+                    argument,
+                    "--open") ||
+                StringComparer.OrdinalIgnoreCase.Equals(
+                    argument,
+                    "--workspace"))
             {
                 index++;
                 continue;
@@ -34,14 +50,22 @@ public sealed record LaunchRequest(string? OpenPath)
                 continue;
             }
 
+            if (argument.Length > 1 &&
+                argument[0] == '/' &&
+                !argument.StartsWith("//", StringComparison.Ordinal))
+            {
+                workspaceName ??= NormalizeWorkspaceName(argument[1..]);
+                continue;
+            }
+
             var normalized = NormalizeArgument(argument);
             if (Directory.Exists(normalized))
             {
-                return new LaunchRequest(normalized);
+                openPath ??= normalized;
             }
         }
 
-        return new LaunchRequest((string?)null);
+        return new LaunchRequest(openPath, workspaceName);
     }
 
     private static string NormalizeArgument(string value)
@@ -51,5 +75,11 @@ public sealed record LaunchRequest(string? OpenPath)
             ? string.Empty
             : Path.GetFullPath(
                 Environment.ExpandEnvironmentVariables(trimmed));
+    }
+
+    private static string? NormalizeWorkspaceName(string value)
+    {
+        var trimmed = value.Trim().Trim('"');
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
     }
 }

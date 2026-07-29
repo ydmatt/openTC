@@ -57,6 +57,48 @@ public sealed class JsonWorkspaceStoreTests : IDisposable
         Assert.Equal("first", recovered.Name);
     }
 
+    [Fact]
+    public async Task Workspace_CanBeExportedImportedAndDeleted()
+    {
+        var sourceStore = new JsonWorkspaceStore(_sandbox);
+        var exportPath = Path.Combine(_sandbox, "portable-workspace.json");
+        await sourceStore.SaveWorkspaceAsync(
+            "work",
+            CreateSnapshot("work", @"D:\项目"));
+
+        await sourceStore.ExportWorkspaceAsync("work", exportPath);
+        Assert.True(File.Exists(exportPath));
+
+        var importedStore = new JsonWorkspaceStore(
+            Path.Combine(_sandbox, "other-data"));
+        var importedName = await importedStore.ImportWorkspaceAsync(exportPath);
+        var imported = await importedStore.LoadWorkspaceAsync(importedName);
+        Assert.Equal("work", importedName);
+        Assert.NotNull(imported);
+        Assert.Equal(@"D:\项目", imported.Panes[0].Tabs[0].CurrentPath);
+
+        await sourceStore.DeleteWorkspaceAsync("work");
+        Assert.Null(await sourceStore.LoadWorkspaceAsync("work"));
+        Assert.DoesNotContain(
+            "work",
+            await sourceStore.ListWorkspaceNamesAsync());
+    }
+
+    [Fact]
+    public async Task ImportWorkspace_DuplicateNameKeepsExistingWorkspace()
+    {
+        var store = new JsonWorkspaceStore(_sandbox);
+        await store.SaveWorkspaceAsync("work", CreateSnapshot("work", @"C:\"));
+        var exportPath = Path.Combine(_sandbox, "work.json");
+        await store.ExportWorkspaceAsync("work", exportPath);
+
+        var importedName = await store.ImportWorkspaceAsync(exportPath);
+
+        Assert.Equal("work (2)", importedName);
+        Assert.NotNull(await store.LoadWorkspaceAsync("work"));
+        Assert.NotNull(await store.LoadWorkspaceAsync("work (2)"));
+    }
+
     public void Dispose()
     {
         var tempRoot = Path.GetFullPath(Path.GetTempPath());

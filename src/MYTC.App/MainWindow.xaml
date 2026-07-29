@@ -32,6 +32,8 @@
                           Click="OnLoadWorkspaceClick" />
                 <MenuItem Header="保存工作区…"
                           Click="OnSaveWorkspaceClick" />
+                <MenuItem Header="管理工作区方案…"
+                          Click="OnManageWorkspacesClick" />
                 <Separator />
                 <MenuItem Header="退出"
                           Click="OnExitClick" />
@@ -79,6 +81,16 @@
                           IsCheckable="True"
                           IsChecked="False"
                           Click="OnOperationToolbarToggleClick" />
+                <MenuItem x:Name="WorkspaceToolbarMenuItem"
+                          Header="工作区工具栏"
+                          IsCheckable="True"
+                          IsChecked="True"
+                          Click="OnWorkspaceToolbarToggleClick" />
+                <MenuItem x:Name="SettingsToolbarMenuItem"
+                          Header="设置工具栏"
+                          IsCheckable="True"
+                          IsChecked="True"
+                          Click="OnSettingsToolbarToggleClick" />
             </MenuItem>
             <MenuItem Header="选项(_O)">
                 <MenuItem Header="全局设置…"
@@ -127,7 +139,10 @@
                                Text="MYTC" />
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel x:Name="WorkspaceToolbar"
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
                     <TextBlock Margin="0,0,7,0" VerticalAlignment="Center" Foreground="#C7D0DD" Text="工作区" />
                     <ComboBox Width="150"
                               ItemsSource="{Binding WorkspaceNames}"
@@ -140,11 +155,17 @@
                             Click="OnSaveWorkspaceClick"
                             Content="保存工作区" />
                     <Button Margin="7,0,0,0"
+                            Click="OnManageWorkspacesClick"
+                            Content="管理…" />
+                    <Button Margin="7,0,0,0"
                             Content="恢复四窗格"
                             Command="{Binding RestoreLayoutCommand}" />
                 </StackPanel>
 
-                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel x:Name="SettingsToolbar"
+                            Grid.Column="3"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
                     <Button Click="OnShortcutSettingsClick" Content="快捷键设置" />
                     <Button Margin="7,0,0,0"
                             Click="OnContextMenuSettingsClick"

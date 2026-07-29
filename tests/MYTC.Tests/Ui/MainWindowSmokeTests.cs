@@ -246,6 +246,40 @@ public sealed class MainWindowSmokeTests
                         Assert.Equal(
                             Visibility.Collapsed,
                             operationToolbar.Visibility);
+                        var workspaceToolbar = Assert.IsType<StackPanel>(
+                            window.FindName("WorkspaceToolbar"));
+                        var workspaceToolbarMenuItem = Assert.IsType<MenuItem>(
+                            window.FindName("WorkspaceToolbarMenuItem"));
+                        workspaceToolbarMenuItem.IsChecked = false;
+                        workspaceToolbarMenuItem.RaiseEvent(
+                            new RoutedEventArgs(MenuItem.ClickEvent));
+                        await Task.Delay(100);
+                        Assert.Equal(
+                            Visibility.Collapsed,
+                            workspaceToolbar.Visibility);
+                        Assert.False(
+                            (await uiPreferencesStore.LoadAsync())
+                                .IsWorkspaceToolbarVisible);
+                        workspaceToolbarMenuItem.IsChecked = true;
+                        workspaceToolbarMenuItem.RaiseEvent(
+                            new RoutedEventArgs(MenuItem.ClickEvent));
+                        var settingsToolbar = Assert.IsType<StackPanel>(
+                            window.FindName("SettingsToolbar"));
+                        var settingsToolbarMenuItem = Assert.IsType<MenuItem>(
+                            window.FindName("SettingsToolbarMenuItem"));
+                        settingsToolbarMenuItem.IsChecked = false;
+                        settingsToolbarMenuItem.RaiseEvent(
+                            new RoutedEventArgs(MenuItem.ClickEvent));
+                        await Task.Delay(100);
+                        Assert.Equal(
+                            Visibility.Collapsed,
+                            settingsToolbar.Visibility);
+                        Assert.False(
+                            (await uiPreferencesStore.LoadAsync())
+                                .IsSettingsToolbarVisible);
+                        settingsToolbarMenuItem.IsChecked = true;
+                        settingsToolbarMenuItem.RaiseEvent(
+                            new RoutedEventArgs(MenuItem.ClickEvent));
 
                         var pane = viewModel.Panes[0];
                         var paneControl =

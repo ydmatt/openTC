@@ -4,9 +4,12 @@ public sealed record UiPreferences(
     int SchemaVersion,
     bool IsOperationToolbarVisible,
     bool ConfirmRecycleDelete = true,
-    bool StartWithWindows = false)
+    bool StartWithWindows = false,
+    bool IsWorkspaceToolbarVisible = true,
+    bool IsSettingsToolbarVisible = true,
+    string? LastWorkspaceName = null)
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public static UiPreferences CreateDefault()
     {
@@ -14,6 +17,9 @@ public sealed record UiPreferences(
             CurrentSchemaVersion,
             IsOperationToolbarVisible: false,
             ConfirmRecycleDelete: true,
-            StartWithWindows: false);
+            StartWithWindows: false,
+            IsWorkspaceToolbarVisible: true,
+            IsSettingsToolbarVisible: true,
+            LastWorkspaceName: null);
     }
 }

@@ -5,9 +5,9 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>MYTC.Maintenance</AssemblyName>
     <RootNamespace>MYTC.Maintenance</RootNamespace>
-    <Version>1.0.9</Version>
-    <AssemblyVersion>1.0.9.0</AssemblyVersion>
-    <FileVersion>1.0.9.0</FileVersion>
+    <Version>1.0.10</Version>
+    <AssemblyVersion>1.0.10.0</AssemblyVersion>
+    <FileVersion>1.0.10.0</FileVersion>
     <Product>MYTC 维护、Win+E 桥接与升级工具</Product>
     <ApplicationIcon>..\MYTC.App\Assets\mytc.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>

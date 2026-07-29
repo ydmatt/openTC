@@ -21,4 +21,17 @@ public interface IWorkspaceStore
         string name,
         WorkspaceSnapshot snapshot,
         CancellationToken cancellationToken = default);
+
+    Task DeleteWorkspaceAsync(
+        string name,
+        CancellationToken cancellationToken = default);
+
+    Task ExportWorkspaceAsync(
+        string name,
+        string destinationPath,
+        CancellationToken cancellationToken = default);
+
+    Task<string> ImportWorkspaceAsync(
+        string sourcePath,
+        CancellationToken cancellationToken = default);
 }

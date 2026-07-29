@@ -102,7 +102,8 @@ public partial class App
         await window.InitializeSettingsAsync();
         window.Show();
 
-        await viewModel.InitializeAsync();
+        await viewModel.InitializeAsync(
+            launchRequest.WorkspaceName ?? window.PreferredWorkspaceName);
         _mainWindowReady = true;
         await HandleLaunchRequestAsync(launchRequest);
         while (_pendingRequests.TryDequeue(out var pending))
@@ -149,7 +150,9 @@ public partial class App
     {
         if (MainWindow is MainWindow window)
         {
-            await window.HandleExternalLaunchAsync(request.OpenPath);
+            await window.HandleExternalLaunchAsync(
+                request.OpenPath,
+                request.WorkspaceName);
         }
     }
 }

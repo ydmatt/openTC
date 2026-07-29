@@ -80,6 +80,84 @@ public sealed class JsonWorkspaceStore : IWorkspaceStore
             cancellationToken);
     }
 
+    public Task DeleteWorkspaceAsync(
+        string name,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var path = GetWorkspacePath(name);
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+
+        var backupPath = path + ".bak";
+        if (File.Exists(backupPath))
+        {
+            File.Delete(backupPath);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public async Task ExportWorkspaceAsync(
+        string name,
+        string destinationPath,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+        var sourcePath = GetWorkspacePath(name);
+        if (!File.Exists(sourcePath))
+        {
+            throw new FileNotFoundException($"找不到工作区“{name}”。", sourcePath);
+        }
+
+        var fullDestination = Path.GetFullPath(destinationPath);
+        var destinationDirectory = Path.GetDirectoryName(fullDestination)
+            ?? throw new IOException("无法确定导出目录。");
+        Directory.CreateDirectory(destinationDirectory);
+        await using var source = new FileStream(
+            sourcePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 64 * 1024,
+            useAsync: true);
+        await using var destination = new FileStream(
+            fullDestination,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 64 * 1024,
+            useAsync: true);
+        await source.CopyToAsync(destination, cancellationToken);
+        await destination.FlushAsync(cancellationToken);
+    }
+
+    public async Task<string> ImportWorkspaceAsync(
+        string sourcePath,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+        var fullSource = Path.GetFullPath(sourcePath);
+        if (!File.Exists(fullSource))
+        {
+            throw new FileNotFoundException("找不到要导入的工作区文件。", fullSource);
+        }
+
+        var snapshot = await LoadExternalAsync(fullSource, cancellationToken)
+            ?? throw new InvalidDataException("工作区文件无效或版本不受支持。");
+        var preferredName = string.IsNullOrWhiteSpace(snapshot.Name)
+            ? Path.GetFileNameWithoutExtension(fullSource)
+            : snapshot.Name;
+        var importedName = GetAvailableWorkspaceName(preferredName);
+        await SaveWorkspaceAsync(
+            importedName,
+            snapshot with { Name = importedName },
+            cancellationToken);
+        return importedName;
+    }
+
     private async Task<WorkspaceSnapshot?> LoadAsync(
         string path,
         CancellationToken cancellationToken)
@@ -129,6 +207,28 @@ public sealed class JsonWorkspaceStore : IWorkspaceStore
             {
                 return null;
             }
+        }
+    }
+
+    private async Task<WorkspaceSnapshot?> LoadExternalAsync(
+        string path,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var stream = File.OpenRead(path);
+            var snapshot = await JsonSerializer.DeserializeAsync<WorkspaceSnapshot>(
+                stream,
+                _jsonOptions,
+                cancellationToken);
+            return snapshot is null ||
+                snapshot.SchemaVersion > WorkspaceSnapshot.CurrentSchemaVersion
+                ? null
+                : snapshot;
+        }
+        catch (JsonException)
+        {
+            return null;
         }
     }
 
@@ -195,5 +295,34 @@ public sealed class JsonWorkspaceStore : IWorkspaceStore
         }
 
         return Path.Combine(_workspaceRoot, sanitized + ".json");
+    }
+
+    private string GetAvailableWorkspaceName(string preferredName)
+    {
+        var baseName = SanitizeWorkspaceName(preferredName);
+        var candidate = baseName;
+        var suffix = 2;
+        while (File.Exists(Path.Combine(_workspaceRoot, candidate + ".json")))
+        {
+            candidate = $"{baseName} ({suffix++})";
+        }
+
+        return candidate;
+    }
+
+    private static string SanitizeWorkspaceName(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        var invalid = Path.GetInvalidFileNameChars();
+        var sanitized = new string(name
+            .Trim()
+            .Select(character => invalid.Contains(character) ? '_' : character)
+            .ToArray());
+        if (string.IsNullOrWhiteSpace(sanitized))
+        {
+            throw new ArgumentException("Workspace name contains no valid filename characters.", nameof(name));
+        }
+
+        return sanitized;
     }
 }

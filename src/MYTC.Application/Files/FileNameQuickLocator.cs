@@ -4,7 +4,8 @@ namespace MYTC.Application.Files;
 
 /// <summary>
 /// Finds the item selected by the file-list type-ahead interaction.
-/// Directories are preferred so a same-prefix file does not hide a folder.
+/// Directories are always searched before files; within each kind, name starts
+/// are preferred over matches at any position.
 /// </summary>
 public static class FileNameQuickLocator
 {
@@ -18,27 +19,62 @@ public static class FileNameQuickLocator
             return -1;
         }
 
-        var normalizedPrefix = prefix.Trim();
-        var directoryIndex = FindIndex(
+        var query = prefix.Trim();
+        var directoryStartsWithIndex = FindIndex(
             entries,
-            normalizedPrefix,
-            entry => entry.Kind == EntryKind.Directory);
-        return directoryIndex >= 0
-            ? directoryIndex
-            : FindIndex(entries, normalizedPrefix, static _ => true);
+            query,
+            entry => entry.Kind == EntryKind.Directory,
+            static (name, value) => name.StartsWith(
+                value,
+                StringComparison.OrdinalIgnoreCase));
+        if (directoryStartsWithIndex >= 0)
+        {
+            return directoryStartsWithIndex;
+        }
+
+        var directoryContainsIndex = FindIndex(
+            entries,
+            query,
+            entry => entry.Kind == EntryKind.Directory,
+            static (name, value) => name.Contains(
+                value,
+                StringComparison.OrdinalIgnoreCase));
+        if (directoryContainsIndex >= 0)
+        {
+            return directoryContainsIndex;
+        }
+
+        var fileStartsWithIndex = FindIndex(
+            entries,
+            query,
+            entry => entry.Kind == EntryKind.File,
+            static (name, value) => name.StartsWith(
+                value,
+                StringComparison.OrdinalIgnoreCase));
+        if (fileStartsWithIndex >= 0)
+        {
+            return fileStartsWithIndex;
+        }
+
+        return FindIndex(
+            entries,
+            query,
+            entry => entry.Kind == EntryKind.File,
+            static (name, value) => name.Contains(
+                value,
+                StringComparison.OrdinalIgnoreCase));
     }
 
     private static int FindIndex(
         IReadOnlyList<FileSystemEntry> entries,
-        string prefix,
-        Func<FileSystemEntry, bool> filter)
+        string query,
+        Func<FileSystemEntry, bool> filter,
+        Func<string, string, bool> nameMatches)
     {
         for (var index = 0; index < entries.Count; index++)
         {
             var entry = entries[index];
-            if (filter(entry) && entry.Name.StartsWith(
-                    prefix,
-                    StringComparison.OrdinalIgnoreCase))
+            if (filter(entry) && nameMatches(entry.Name, query))
             {
                 return index;
             }

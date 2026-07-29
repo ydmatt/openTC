@@ -12,11 +12,12 @@
         Background="{StaticResource AppBackgroundBrush}"
         PreviewKeyDown="OnWindowKeyDown"
         PreviewKeyUp="OnWindowKeyUp"
+        PreviewTextInput="OnWindowPreviewTextInput"
         Closing="OnWindowClosing">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="44" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="28" />
@@ -114,7 +115,7 @@
             </MenuItem>
         </Menu>
 
-        <Border Grid.Row="1" Background="#18212F">
+        <Border x:Name="HeaderToolbarBorder" Grid.Row="1" Background="#18212F">
             <Grid Margin="10,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />

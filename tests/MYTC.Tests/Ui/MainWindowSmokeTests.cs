@@ -260,13 +260,12 @@ public sealed class MainWindowSmokeTests
                         Assert.False(
                             (await uiPreferencesStore.LoadAsync())
                                 .IsWorkspaceToolbarVisible);
-                        workspaceToolbarMenuItem.IsChecked = true;
-                        workspaceToolbarMenuItem.RaiseEvent(
-                            new RoutedEventArgs(MenuItem.ClickEvent));
                         var settingsToolbar = Assert.IsType<StackPanel>(
                             window.FindName("SettingsToolbar"));
                         var settingsToolbarMenuItem = Assert.IsType<MenuItem>(
                             window.FindName("SettingsToolbarMenuItem"));
+                        var headerToolbarBorder = Assert.IsType<Border>(
+                            window.FindName("HeaderToolbarBorder"));
                         settingsToolbarMenuItem.IsChecked = false;
                         settingsToolbarMenuItem.RaiseEvent(
                             new RoutedEventArgs(MenuItem.ClickEvent));
@@ -277,6 +276,16 @@ public sealed class MainWindowSmokeTests
                         Assert.False(
                             (await uiPreferencesStore.LoadAsync())
                                 .IsSettingsToolbarVisible);
+                        Assert.Equal(
+                            Visibility.Collapsed,
+                            headerToolbarBorder.Visibility);
+                        workspaceToolbarMenuItem.IsChecked = true;
+                        workspaceToolbarMenuItem.RaiseEvent(
+                            new RoutedEventArgs(MenuItem.ClickEvent));
+                        await Task.Delay(100);
+                        Assert.Equal(
+                            Visibility.Visible,
+                            headerToolbarBorder.Visibility);
                         settingsToolbarMenuItem.IsChecked = true;
                         settingsToolbarMenuItem.RaiseEvent(
                             new RoutedEventArgs(MenuItem.ClickEvent));

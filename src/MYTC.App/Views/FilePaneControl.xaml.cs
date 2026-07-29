@@ -548,6 +548,26 @@ public partial class FilePaneControl
         SelectAndFocusFileItem(0);
     }
 
+    public bool TryQuickLocate(string prefix)
+    {
+        if (ViewModel is null)
+        {
+            return false;
+        }
+
+        var index = FileNameQuickLocator.FindMatchIndex(
+            ViewModel.Items,
+            prefix);
+        if (index < 0)
+        {
+            return false;
+        }
+
+        ViewModel.RequestActivation();
+        SelectAndFocusFileItem(index);
+        return true;
+    }
+
     public void MoveFileSelectionFromKeyboard(int offset)
     {
         MoveFileGridSelection(offset);

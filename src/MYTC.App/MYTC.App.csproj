@@ -5,9 +5,9 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>MYTC</AssemblyName>
     <RootNamespace>MYTC.App</RootNamespace>
-    <Version>1.0.10</Version>
-    <AssemblyVersion>1.0.10.0</AssemblyVersion>
-    <FileVersion>1.0.10.0</FileVersion>
+    <Version>1.0.11</Version>
+    <AssemblyVersion>1.0.11.0</AssemblyVersion>
+    <FileVersion>1.0.11.0</FileVersion>
     <Product>MYTC 四窗格资源管理器</Product>
     <ApplicationIcon>Assets\mytc.ico</ApplicationIcon>
   </PropertyGroup>

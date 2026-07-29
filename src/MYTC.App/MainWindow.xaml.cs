@@ -46,10 +46,12 @@ public partial class MainWindow
         new(TabContextMenuConfiguration.CurrentSchemaVersion, []);
     private UiPreferences _uiPreferences = UiPreferences.CreateDefault();
     private readonly Stack<RecycleDeletionBatch> _recycleUndoStack = [];
+    private readonly System.Windows.Threading.DispatcherTimer _quickLocateTimer;
     private bool _deleteKeyReady = true;
     private bool _suppressAltMenuActivation;
     private bool _allowClose;
     private FilePaneViewModel? _fileListKeyboardPane;
+    private string _quickLocatePrefix = string.Empty;
 
     public MainWindow(
         IShortcutStore shortcutStore,
@@ -74,6 +76,11 @@ public partial class MainWindow
         _recycleBinRestoreService = recycleBinRestoreService;
         _deleteConfirmationOverride = deleteConfirmationOverride;
         InitializeComponent();
+        _quickLocateTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(1.2),
+        };
+        _quickLocateTimer.Tick += (_, _) => ClearQuickLocatePrefix();
         SourceInitialized += (_, _) =>
             AdaptiveWindowPlacement.FitInitialWindowToWorkingArea(
                 this,
@@ -246,6 +253,41 @@ public partial class MainWindow
 
             await ExecuteShortcutAsync(action);
         }
+    }
+
+    private void OnWindowPreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+        if (ViewModel?.ActivePane is null ||
+            string.IsNullOrWhiteSpace(e.Text) ||
+            e.Text.All(char.IsControl) ||
+            IsFileListKeyboardInputFocused() ||
+            HasCommandModifier())
+        {
+            return;
+        }
+
+        var control = FindActiveFilePaneControl();
+        if (control is null)
+        {
+            return;
+        }
+
+        var candidate = _quickLocatePrefix + e.Text;
+        if (!control.TryQuickLocate(candidate))
+        {
+            candidate = e.Text;
+            if (!control.TryQuickLocate(candidate))
+            {
+                ClearQuickLocatePrefix();
+                e.Handled = true;
+                return;
+            }
+        }
+
+        _quickLocatePrefix = candidate;
+        _quickLocateTimer.Stop();
+        _quickLocateTimer.Start();
+        e.Handled = true;
     }
 
     private void OnWindowKeyUp(object sender, KeyEventArgs e)
@@ -2146,6 +2188,7 @@ public partial class MainWindow
         WorkspaceToolbar.Visibility = isVisible
             ? Visibility.Visible
             : Visibility.Collapsed;
+        UpdateHeaderToolbarVisibility();
     }
 
     private void ApplySettingsToolbarPreference(bool isVisible)
@@ -2154,6 +2197,16 @@ public partial class MainWindow
         SettingsToolbar.Visibility = isVisible
             ? Visibility.Visible
             : Visibility.Collapsed;
+        UpdateHeaderToolbarVisibility();
+    }
+
+    private void UpdateHeaderToolbarVisibility()
+    {
+        HeaderToolbarBorder.Visibility =
+            WorkspaceToolbar.Visibility == Visibility.Visible ||
+            SettingsToolbar.Visibility == Visibility.Visible
+                ? Visibility.Visible
+                : Visibility.Collapsed;
     }
 
     private async Task SaveUiPreferencesAsync(UiPreferences preferences)
@@ -2284,6 +2337,13 @@ public partial class MainWindow
         return false;
     }
 
+    private static bool HasCommandModifier()
+    {
+        return Keyboard.Modifiers.HasFlag(ModifierKeys.Control) ||
+            Keyboard.Modifiers.HasFlag(ModifierKeys.Alt) ||
+            Keyboard.Modifiers.HasFlag(ModifierKeys.Windows);
+    }
+
     private static bool TryGetFocusedFileGrid(
         out FilePaneViewModel pane,
         out DataGrid grid)
@@ -2370,6 +2430,20 @@ public partial class MainWindow
             .FirstOrDefault(candidate =>
                 candidate.IsVisible &&
                 ReferenceEquals(candidate.DataContext, activePane));
+    }
+
+    private FilePaneControl? FindActiveFilePaneControl()
+    {
+        return ViewModel?.ActivePane is { } activePane
+            ? FindVisualChildren<FilePaneControl>(this).FirstOrDefault(
+                control => ReferenceEquals(control.DataContext, activePane))
+            : null;
+    }
+
+    private void ClearQuickLocatePrefix()
+    {
+        _quickLocateTimer.Stop();
+        _quickLocatePrefix = string.Empty;
     }
 
     private void RestoreFileGridFocus(DataGrid? grid)

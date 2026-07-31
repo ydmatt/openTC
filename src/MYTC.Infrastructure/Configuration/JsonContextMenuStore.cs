@@ -221,6 +221,20 @@ public sealed class JsonContextMenuStore : IContextMenuStore
             };
         }
 
+        if (!items.Any(item =>
+                item.Action == ContextMenuAction.CreateTextDocument))
+        {
+            var createTextDocument = defaults.Single(item =>
+                item.Action == ContextMenuAction.CreateTextDocument);
+            createDirectoryIndex = items.FindIndex(item =>
+                item.Action == ContextMenuAction.CreateDirectory);
+            items.Insert(
+                createDirectoryIndex >= 0
+                    ? createDirectoryIndex + 1
+                    : submenuIndex >= 0 ? submenuIndex + 1 : items.Count,
+                createTextDocument);
+        }
+
         if (!items.Any(item => item.Action == ContextMenuAction.UndoDelete))
         {
             var undoDelete = defaults.Single(item =>
@@ -230,6 +244,19 @@ public sealed class JsonContextMenuStore : IContextMenuStore
             items.Insert(
                 recycleIndex >= 0 ? recycleIndex + 1 : items.Count,
                 undoDelete);
+        }
+
+        if (!items.Any(item => item.Action == ContextMenuAction.Properties))
+        {
+            var properties = defaults.Single(item =>
+                item.Action == ContextMenuAction.Properties);
+            var permanentDeleteIndex = items.FindIndex(item =>
+                item.Action == ContextMenuAction.PermanentDelete);
+            items.Insert(
+                permanentDeleteIndex >= 0
+                    ? permanentDeleteIndex + 1
+                    : items.Count,
+                properties);
         }
 
         return new ContextMenuConfiguration(

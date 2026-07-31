@@ -32,9 +32,10 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal">
-                <Button Width="82" Click="OnImportClick" Content="导入…" />
-                <Button Width="82" Margin="7,0,0,0" Click="OnExportClick" Content="导出…" />
-                <Button Width="82" Margin="7,0,0,0" Click="OnDeleteClick" Content="删除" />
+                <Button Width="76" Click="OnImportClick" Content="导入…" />
+                <Button Width="76" Margin="7,0,0,0" Click="OnExportClick" Content="导出…" />
+                <Button Width="76" Margin="7,0,0,0" Click="OnRenameClick" Content="重命名…" />
+                <Button Width="76" Margin="7,0,0,0" Click="OnDeleteClick" Content="删除" />
             </StackPanel>
             <Button Grid.Column="1" Width="82" IsCancel="True" Content="关闭" />
         </Grid>

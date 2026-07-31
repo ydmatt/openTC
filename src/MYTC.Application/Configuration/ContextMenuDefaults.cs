@@ -17,6 +17,11 @@ public static class ContextMenuDefaults
                     "文件夹（&F）",
                     ContextMenuAction.CreateDirectory,
                     "new-submenu"),
+                BuiltIn(
+                    "create-text-document",
+                    "文本文档（.txt）（&T）",
+                    ContextMenuAction.CreateTextDocument,
+                    "new-submenu"),
                 Separator("separator-1"),
                 BuiltIn("copy-target", "复制到目标窗格", ContextMenuAction.CopyToTarget),
                 BuiltIn("move-target", "移动到目标窗格", ContextMenuAction.MoveToTarget),
@@ -30,6 +35,7 @@ public static class ContextMenuDefaults
                 BuiltIn("delete", "移到回收站", ContextMenuAction.RecycleDelete),
                 BuiltIn("undo-delete", "撤销删除（&U）", ContextMenuAction.UndoDelete),
                 BuiltIn("delete-permanent", "永久删除", ContextMenuAction.PermanentDelete),
+                BuiltIn("properties", "属性（&R）", ContextMenuAction.Properties),
             ]);
     }
 

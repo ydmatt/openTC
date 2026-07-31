@@ -157,6 +157,7 @@ public sealed class JsonShortcutStore : IShortcutStore
         AddIfGestureUnused(bindings, ShortcutAction.FocusAddressBar, "Alt+D");
         AddIfGestureUnused(bindings, ShortcutAction.NavigateUp, "Backspace");
         AddIfGestureUnused(bindings, ShortcutAction.RecycleDelete, "Ctrl+D");
+        AddIfGestureUnused(bindings, ShortcutAction.ShowProperties, "Alt+Enter");
         return new ShortcutConfiguration(
             ShortcutConfiguration.CurrentSchemaVersion,
             bindings);

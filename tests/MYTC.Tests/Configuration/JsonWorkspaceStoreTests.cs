@@ -99,6 +99,40 @@ public sealed class JsonWorkspaceStoreTests : IDisposable
         Assert.NotNull(await store.LoadWorkspaceAsync("work (2)"));
     }
 
+    [Fact]
+    public async Task Workspace_CanBeRenamedWithoutLosingItsContents()
+    {
+        var store = new JsonWorkspaceStore(_sandbox);
+        await store.SaveWorkspaceAsync(
+            "work",
+            CreateSnapshot("work", @"D:\项目"));
+
+        await store.RenameWorkspaceAsync("work", "投标工作");
+
+        Assert.Null(await store.LoadWorkspaceAsync("work"));
+        var renamed = await store.LoadWorkspaceAsync("投标工作");
+        Assert.NotNull(renamed);
+        Assert.Equal("投标工作", renamed.Name);
+        Assert.Equal(@"D:\项目", renamed.Panes[0].Tabs[0].CurrentPath);
+        Assert.Contains(
+            "投标工作",
+            await store.ListWorkspaceNamesAsync());
+    }
+
+    [Fact]
+    public async Task RenameWorkspace_DoesNotOverwriteAnExistingWorkspace()
+    {
+        var store = new JsonWorkspaceStore(_sandbox);
+        await store.SaveWorkspaceAsync("work", CreateSnapshot("work", @"C:\"));
+        await store.SaveWorkspaceAsync("video", CreateSnapshot("video", @"D:\"));
+
+        await Assert.ThrowsAsync<IOException>(
+            () => store.RenameWorkspaceAsync("work", "video"));
+
+        Assert.NotNull(await store.LoadWorkspaceAsync("work"));
+        Assert.NotNull(await store.LoadWorkspaceAsync("video"));
+    }
+
     public void Dispose()
     {
         var tempRoot = Path.GetFullPath(Path.GetTempPath());

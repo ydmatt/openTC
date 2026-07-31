@@ -35,6 +35,7 @@ public partial class MainWindow
     private readonly IUiPreferencesStore _uiPreferencesStore;
     private readonly IShortcutCreationService _shortcutCreationService;
     private readonly IOpenWithService _openWithService;
+    private readonly IPropertiesService _propertiesService;
     private readonly IAutoStartService _autoStartService;
     private readonly IManagedRecycleService _managedRecycleService;
     private readonly IRecycleBinRestoreService _recycleBinRestoreService;
@@ -60,6 +61,7 @@ public partial class MainWindow
         IUiPreferencesStore uiPreferencesStore,
         IShortcutCreationService shortcutCreationService,
         IOpenWithService openWithService,
+        IPropertiesService propertiesService,
         IAutoStartService autoStartService,
         IManagedRecycleService managedRecycleService,
         IRecycleBinRestoreService recycleBinRestoreService,
@@ -71,6 +73,7 @@ public partial class MainWindow
         _uiPreferencesStore = uiPreferencesStore;
         _shortcutCreationService = shortcutCreationService;
         _openWithService = openWithService;
+        _propertiesService = propertiesService;
         _autoStartService = autoStartService;
         _managedRecycleService = managedRecycleService;
         _recycleBinRestoreService = recycleBinRestoreService;
@@ -402,6 +405,13 @@ public partial class MainWindow
                 }
 
                 break;
+            case ShortcutAction.ShowProperties:
+                if (ViewModel.ActivePane is { } propertiesPane)
+                {
+                    ShowProperties(propertiesPane);
+                }
+
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(action));
         }
@@ -603,6 +613,7 @@ public partial class MainWindow
                     Kind: EntryKind.File,
                 },
                 ],
+            ContextMenuAction.Properties => pane.SelectedItems.Count == 1,
             ContextMenuAction.Rename => pane.SelectedItems.Count == 1,
             ContextMenuAction.UndoDelete => _recycleUndoStack.Count > 0,
             ContextMenuAction.CopyToTarget or
@@ -649,6 +660,9 @@ public partial class MainWindow
                 }
 
                 break;
+            case ContextMenuAction.Properties:
+                ShowProperties(pane);
+                break;
             case ContextMenuAction.CopyToTarget:
                 await TransferToTargetAsync(FileOperationKind.Copy);
                 break;
@@ -669,6 +683,9 @@ public partial class MainWindow
                 break;
             case ContextMenuAction.CreateDirectory:
                 await CreateDirectoryAsync();
+                break;
+            case ContextMenuAction.CreateTextDocument:
+                await CreateTextDocumentAsync();
                 break;
             case ContextMenuAction.Rename:
                 await RenameAsync();
@@ -1470,6 +1487,49 @@ public partial class MainWindow
         }
     }
 
+    private async Task CreateTextDocumentAsync()
+    {
+        if (ViewModel is null || ViewModel.IsOperationRunning)
+        {
+            return;
+        }
+
+        try
+        {
+            var created = await ViewModel.CreateTextDocumentAsync();
+            if (created is not null)
+            {
+                await Dispatcher.InvokeAsync(
+                    () => FindActiveFilePaneControl()?.FocusFileItemByPath(created),
+                    System.Windows.Threading.DispatcherPriority.ContextIdle);
+            }
+        }
+        catch (Exception exception)
+        {
+            ShowOperationError("新建文本文档失败", exception);
+        }
+    }
+
+    private void ShowProperties(FilePaneViewModel pane)
+    {
+        if (pane.SelectedItems is not [var selected])
+        {
+            ViewModel?.SetStatusMessage("查看属性时请只选择一个文件或文件夹。");
+            return;
+        }
+
+        try
+        {
+            _propertiesService.Show(
+                selected.FullPath,
+                new WindowInteropHelper(this).Handle);
+        }
+        catch (Exception exception)
+        {
+            ShowOperationError("打开属性失败", exception);
+        }
+    }
+
     private async Task RenameAsync()
     {
         if (ViewModel is null || ViewModel.IsOperationRunning)
@@ -1909,6 +1969,7 @@ public partial class MainWindow
         };
         dialog.ImportRequested += OnWorkspaceImportRequested;
         dialog.ExportRequested += OnWorkspaceExportRequested;
+        dialog.RenameRequested += OnWorkspaceRenameRequested;
         dialog.DeleteRequested += OnWorkspaceDeleteRequested;
         _ = dialog.ShowDialog();
     }
@@ -2039,6 +2100,43 @@ public partial class MainWindow
         catch (Exception exception)
         {
             ShowOperationError("删除工作区失败", exception);
+        }
+    }
+
+    private async void OnWorkspaceRenameRequested(
+        object? sender,
+        WorkspaceSelectionEventArgs e)
+    {
+        if (sender is not WorkspaceManagerDialog dialog || ViewModel is null)
+        {
+            return;
+        }
+
+        var nameDialog = new WorkspaceNameDialog(
+            e.WorkspaceName,
+            "重命名工作区方案",
+            "重命名")
+        {
+            Owner = this,
+        };
+        if (nameDialog.ShowDialog() != true ||
+            StringComparer.Ordinal.Equals(
+                e.WorkspaceName.Trim(),
+                nameDialog.WorkspaceName))
+        {
+            return;
+        }
+
+        try
+        {
+            await ViewModel.RenameWorkspaceAsync(
+                e.WorkspaceName,
+                nameDialog.WorkspaceName);
+            RefreshWorkspaceManager(dialog);
+        }
+        catch (Exception exception)
+        {
+            ShowOperationError("重命名工作区失败", exception);
         }
     }
 

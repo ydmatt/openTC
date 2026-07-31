@@ -100,6 +100,45 @@ public sealed class JsonWorkspaceStore : IWorkspaceStore
         return Task.CompletedTask;
     }
 
+    public async Task RenameWorkspaceAsync(
+        string currentName,
+        string newName,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(newName);
+        var currentPath = GetWorkspacePath(currentName);
+        var targetPath = GetWorkspacePath(newName);
+        var snapshot = await LoadAsync(currentPath, cancellationToken)
+            ?? throw new FileNotFoundException(
+                $"找不到工作区“{currentName.Trim()}”。",
+                currentPath);
+
+        if (!StringComparer.OrdinalIgnoreCase.Equals(currentPath, targetPath) &&
+            File.Exists(targetPath))
+        {
+            throw new IOException($"工作区“{newName.Trim()}”已经存在。");
+        }
+
+        var normalizedName = newName.Trim();
+        await SaveAtomicAsync(
+            targetPath,
+            snapshot with { Name = normalizedName },
+            cancellationToken);
+
+        if (StringComparer.OrdinalIgnoreCase.Equals(currentPath, targetPath))
+        {
+            return;
+        }
+
+        File.Delete(currentPath);
+        var currentBackup = currentPath + ".bak";
+        if (File.Exists(currentBackup))
+        {
+            File.Delete(currentBackup);
+        }
+    }
+
     public async Task ExportWorkspaceAsync(
         string name,
         string destinationPath,

@@ -17,7 +17,7 @@
         <TextBlock Text="工作区名称" />
         <TextBox x:Name="NameTextBox" Grid.Row="1" Margin="0,7,0,12" />
         <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal">
-            <Button MinWidth="78" Click="OnOkClick" Content="保存" IsDefault="True" />
+            <Button x:Name="ConfirmButton" MinWidth="78" Click="OnOkClick" Content="保存" IsDefault="True" />
             <Button MinWidth="78" Margin="8,0,0,0" Content="取消" IsCancel="True" />
         </StackPanel>
     </Grid>

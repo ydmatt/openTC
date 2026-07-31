@@ -272,6 +272,26 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         StatusMessage = $"工作区“{name.Trim()}”已删除";
     }
 
+    public async Task RenameWorkspaceAsync(string currentName, string newName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(newName);
+        var source = currentName.Trim();
+        var target = newName.Trim();
+        await _workspaceStore.RenameWorkspaceAsync(source, target);
+        var wasSelected = StringComparer.OrdinalIgnoreCase.Equals(
+            SelectedWorkspaceName,
+            source);
+        await RefreshWorkspaceNamesAsync();
+        if (wasSelected)
+        {
+            SelectedWorkspaceName = target;
+            WorkspaceActivated?.Invoke(target);
+        }
+
+        StatusMessage = $"工作区“{source}”已重命名为“{target}”";
+    }
+
     public Task ExportWorkspaceAsync(string name, string destinationPath)
     {
         return _workspaceStore.ExportWorkspaceAsync(name, destinationPath);
@@ -400,6 +420,20 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             name);
         await ActivePane.RefreshCurrentAsync();
         StatusMessage = $"已新建文件夹：{Path.GetFileName(created)}";
+        return created;
+    }
+
+    public async Task<string?> CreateTextDocumentAsync()
+    {
+        if (ActivePane is null)
+        {
+            return null;
+        }
+
+        var created = await _fileOperationService.CreateTextDocumentAsync(
+            ActivePane.CurrentPath);
+        await ActivePane.RefreshCurrentAsync();
+        StatusMessage = $"已新建文本文档：{Path.GetFileName(created)}";
         return created;
     }
 

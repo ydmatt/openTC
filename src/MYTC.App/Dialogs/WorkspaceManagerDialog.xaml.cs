@@ -23,6 +23,8 @@ public partial class WorkspaceManagerDialog
 
     public event EventHandler<WorkspaceSelectionEventArgs>? ExportRequested;
 
+    public event EventHandler<WorkspaceSelectionEventArgs>? RenameRequested;
+
     public event EventHandler<WorkspaceSelectionEventArgs>? DeleteRequested;
 
     public void ReplaceWorkspaceNames(
@@ -59,6 +61,16 @@ public partial class WorkspaceManagerDialog
         if (!string.IsNullOrWhiteSpace(SelectedWorkspaceName))
         {
             DeleteRequested?.Invoke(
+                this,
+                new WorkspaceSelectionEventArgs(SelectedWorkspaceName));
+        }
+    }
+
+    private void OnRenameClick(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrWhiteSpace(SelectedWorkspaceName))
+        {
+            RenameRequested?.Invoke(
                 this,
                 new WorkspaceSelectionEventArgs(SelectedWorkspaceName));
         }

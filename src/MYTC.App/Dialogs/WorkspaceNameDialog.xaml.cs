@@ -4,9 +4,14 @@ namespace MYTC.App.Dialogs;
 
 public partial class WorkspaceNameDialog
 {
-    public WorkspaceNameDialog(string? initialName)
+    public WorkspaceNameDialog(
+        string? initialName,
+        string title = "保存工作区",
+        string confirmButtonText = "保存")
     {
         InitializeComponent();
+        Title = title;
+        ConfirmButton.Content = confirmButtonText;
         NameTextBox.Text = initialName ?? string.Empty;
         NameTextBox.Focus();
         NameTextBox.SelectAll();

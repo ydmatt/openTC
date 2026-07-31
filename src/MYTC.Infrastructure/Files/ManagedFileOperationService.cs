@@ -1,4 +1,7 @@
 using Microsoft.VisualBasic.FileIO;
+using Microsoft.Win32;
+using System.Runtime.InteropServices;
+using System.Text;
 using MYTC.Application.Abstractions;
 using MYTC.Domain.Operations;
 
@@ -37,6 +40,38 @@ public sealed class ManagedFileOperationService : IFileOperationService
                 }
 
                 return Directory.CreateDirectory(destination).FullName;
+            },
+            cancellationToken);
+    }
+
+    public Task<string> CreateTextDocumentAsync(
+        string parentDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.Run(
+            () =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var parent = RequireExistingDirectory(parentDirectory);
+                var shellNew = ReadTextDocumentShellNew();
+                var destination = FindAvailableFileName(
+                    parent,
+                    shellNew.DisplayName + ".txt");
+
+                if (shellNew.TemplateFile is { } templateFile)
+                {
+                    File.Copy(templateFile, destination);
+                }
+                else if (shellNew.TemplateData is { } templateData)
+                {
+                    File.WriteAllBytes(destination, templateData);
+                }
+                else
+                {
+                    File.WriteAllBytes(destination, []);
+                }
+
+                return destination;
             },
             cancellationToken);
     }
@@ -399,6 +434,128 @@ public sealed class ManagedFileOperationService : IFileOperationService
 
         throw new IOException("无法生成不冲突的目标名称。");
     }
+
+    private static string FindAvailableFileName(
+        string parentDirectory,
+        string preferredName)
+    {
+        var safeName = SanitizeTextDocumentName(preferredName);
+        var initialPath = Path.Combine(parentDirectory, safeName);
+        if (!PathExists(initialPath))
+        {
+            return initialPath;
+        }
+
+        var name = Path.GetFileNameWithoutExtension(safeName);
+        var extension = Path.GetExtension(safeName);
+        for (var index = 2; index < 10_000; index++)
+        {
+            var candidate = Path.Combine(
+                parentDirectory,
+                $"{name} ({index}){extension}");
+            if (!PathExists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new IOException("无法生成不冲突的文本文档名称。");
+    }
+
+    private static TextDocumentShellNew ReadTextDocumentShellNew()
+    {
+        const string fallbackName = "新建文本文档";
+        try
+        {
+            using var shellNew = Registry.ClassesRoot.OpenSubKey(
+                @".txt\ShellNew");
+            if (shellNew is null)
+            {
+                return new TextDocumentShellNew(fallbackName, null, null);
+            }
+
+            var itemName = shellNew.GetValue("ItemName") as string;
+            var displayName = ResolveIndirectString(itemName) ?? fallbackName;
+            var templateData = shellNew.GetValue("Data") as byte[];
+            var templateFile = ResolveShellNewTemplate(
+                shellNew.GetValue("FileName") as string);
+            return new TextDocumentShellNew(
+                SanitizeTextDocumentName(displayName, includeExtension: false),
+                templateFile,
+                templateData);
+        }
+        catch (Exception exception) when (
+            exception is IOException or
+            UnauthorizedAccessException or
+            System.Security.SecurityException)
+        {
+            return new TextDocumentShellNew(fallbackName, null, null);
+        }
+    }
+
+    private static string? ResolveShellNewTemplate(string? fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return null;
+        }
+
+        var expanded = Environment.ExpandEnvironmentVariables(fileName);
+        var resolved = Path.IsPathFullyQualified(expanded)
+            ? expanded
+            : Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Windows),
+                "ShellNew",
+                expanded);
+        return File.Exists(resolved) ? resolved : null;
+    }
+
+    private static string? ResolveIndirectString(string? source)
+    {
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            return null;
+        }
+
+        var buffer = new StringBuilder(32_768);
+        return SHLoadIndirectString(source, buffer, (uint)buffer.Capacity, 0) == 0 &&
+            !string.IsNullOrWhiteSpace(buffer.ToString())
+            ? buffer.ToString()
+            : source.StartsWith('@') ? null : source;
+    }
+
+    private static string SanitizeTextDocumentName(
+        string value,
+        bool includeExtension = true)
+    {
+        var fileName = Path.GetFileName(value.Trim());
+        var invalid = Path.GetInvalidFileNameChars();
+        var sanitized = new string(fileName
+            .Where(character => !invalid.Contains(character))
+            .ToArray())
+            .Trim()
+            .TrimEnd('.', ' ');
+        if (!includeExtension && Path.HasExtension(sanitized))
+        {
+            sanitized = Path.GetFileNameWithoutExtension(sanitized);
+        }
+
+        return string.IsNullOrWhiteSpace(sanitized) || sanitized is "." or ".."
+            ? "新建文本文档"
+            : sanitized;
+    }
+
+    private sealed record TextDocumentShellNew(
+        string DisplayName,
+        string? TemplateFile,
+        byte[]? TemplateData);
+
+    [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+    private static extern int SHLoadIndirectString(
+        string source,
+        StringBuilder buffer,
+        uint bufferLength,
+        nint reserved);
 
     private static bool IsDescendant(string candidate, string parent)
     {

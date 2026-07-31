@@ -76,6 +76,7 @@ public sealed class MainWindowSmokeTests
                     .GetResult();
                 var deleteConfirmationCount = 0;
                 var openWithService = new RecordingOpenWithService();
+                var propertiesService = new RecordingPropertiesService();
                 var viewModel = new MainWindowViewModel(
                     new FakeListingService(),
                     new FakeDriveService(sandbox),
@@ -89,6 +90,7 @@ public sealed class MainWindowSmokeTests
                     uiPreferencesStore,
                     new ShellShortcutCreationService(),
                     openWithService,
+                    propertiesService,
                     new WindowsAutoStartService(),
                     new ManagedNetworkRecycleService(),
                     new ShellRecycleBinRestoreService(),
@@ -529,6 +531,11 @@ public sealed class MainWindowSmokeTests
                             item => Equals(
                                 item.Header,
                                 "文件夹（_F）"));
+                        Assert.Contains(
+                            newSubmenu.Items.OfType<MenuItem>(),
+                            item => Equals(
+                                item.Header,
+                                "文本文档（.txt）（_T）"));
                         Assert.False(
                             InputMethod.GetIsInputMethodEnabled(contextMenu));
                         var openWithItem = Assert.Single(
@@ -544,6 +551,17 @@ public sealed class MainWindowSmokeTests
                         Assert.Equal(
                             sampleEntry.FullPath,
                             openWithService.LastFilePath);
+                        var propertiesItem = Assert.Single(
+                            contextMenu.Items.OfType<MenuItem>(),
+                            item => Equals(item.Header, "属性（_R）"));
+                        Assert.True(propertiesItem.IsEnabled);
+                        propertiesItem.RaiseEvent(
+                            new RoutedEventArgs(MenuItem.ClickEvent));
+                        await Dispatcher.Yield(
+                            DispatcherPriority.ContextIdle);
+                        Assert.Equal(
+                            sampleEntry.FullPath,
+                            propertiesService.LastPath);
                         copyPathItem.RaiseEvent(
                             new RoutedEventArgs(MenuItem.ClickEvent));
                         await Dispatcher.Yield(
@@ -700,6 +718,15 @@ public sealed class MainWindowSmokeTests
                             row => row.Action ==
                                 ContextMenuAction.CreateDirectory &&
                                 row.ParentId == "new-submenu");
+                        Assert.Contains(
+                            contextMenuDialog.Rows,
+                            row => row.Action ==
+                                ContextMenuAction.CreateTextDocument &&
+                                row.ParentId == "new-submenu");
+                        Assert.Contains(
+                            contextMenuDialog.Rows,
+                            row => row.Action ==
+                                ContextMenuAction.Properties);
                         Assert.Contains(
                             contextMenuDialog.Rows,
                             row => row.Action ==
@@ -886,6 +913,17 @@ public sealed class MainWindowSmokeTests
         public void Show(string filePath, nint ownerHandle)
         {
             LastFilePath = filePath;
+            Assert.NotEqual(nint.Zero, ownerHandle);
+        }
+    }
+
+    private sealed class RecordingPropertiesService : IPropertiesService
+    {
+        public string? LastPath { get; private set; }
+
+        public void Show(string path, nint ownerHandle)
+        {
+            LastPath = path;
             Assert.NotEqual(nint.Zero, ownerHandle);
         }
     }

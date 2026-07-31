@@ -84,14 +84,7 @@ internal static class UpdaterMode
         {
             StartUpdaterHostCleanup(installRoot);
             RestartBridgeIfRegistered(installRoot);
-            RestartMainApplication(installRoot);
-            MessageBox.Show(
-                $"MYTC 已升级到 {result.NewVersion}。\n\n" +
-                "用户配置目录 data 未被覆盖。\n" +
-                $"旧版程序备份：{result.BackupRoot}",
-                "MYTC 升级完成",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+            RestartMainApplication(installRoot, result.NewVersion);
         }
 
         return 0;
@@ -258,19 +251,28 @@ internal static class UpdaterMode
         }
     }
 
-    private static void RestartMainApplication(string installRoot)
+    private static void RestartMainApplication(
+        string installRoot,
+        string? completedUpdateVersion = null)
     {
         var executable = Path.Combine(
             installRoot,
             PortableUpdateConstants.MainExecutableName);
         if (File.Exists(executable))
         {
-            Process.Start(new ProcessStartInfo
+            var startInfo = new ProcessStartInfo
             {
                 FileName = executable,
                 WorkingDirectory = installRoot,
                 UseShellExecute = false,
-            });
+            };
+            if (!string.IsNullOrWhiteSpace(completedUpdateVersion))
+            {
+                startInfo.ArgumentList.Add("--update-complete");
+                startInfo.ArgumentList.Add(completedUpdateVersion);
+            }
+
+            Process.Start(startInfo);
         }
     }
 

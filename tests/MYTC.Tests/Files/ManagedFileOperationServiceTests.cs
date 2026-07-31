@@ -110,6 +110,22 @@ public sealed class ManagedFileOperationServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateTextDocument_UsesShellNewStyleNameAndKeepsBoth()
+    {
+        var directory = CreateDirectory("new-text-document");
+
+        var first = await _service.CreateTextDocumentAsync(directory);
+        var second = await _service.CreateTextDocumentAsync(directory);
+
+        Assert.True(File.Exists(first));
+        Assert.True(File.Exists(second));
+        Assert.Equal(".txt", Path.GetExtension(first));
+        Assert.Equal(".txt", Path.GetExtension(second));
+        Assert.NotEqual(first, second);
+        Assert.Empty(await File.ReadAllBytesAsync(first));
+    }
+
+    [Fact]
     public async Task RecycleDelete_CanUndoLatestDeletion()
     {
         var directory = CreateDirectory("recycle-undo");

@@ -26,6 +26,11 @@ public interface IWorkspaceStore
         string name,
         CancellationToken cancellationToken = default);
 
+    Task RenameWorkspaceAsync(
+        string currentName,
+        string newName,
+        CancellationToken cancellationToken = default);
+
     Task ExportWorkspaceAsync(
         string name,
         string destinationPath,

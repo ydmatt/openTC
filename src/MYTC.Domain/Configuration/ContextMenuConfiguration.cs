@@ -4,7 +4,7 @@ public sealed record ContextMenuConfiguration(
     int SchemaVersion,
     IReadOnlyList<ContextMenuItemDefinition> Items)
 {
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 6;
 }
 
 public sealed record ContextMenuItemDefinition(
@@ -29,6 +29,7 @@ public enum ContextMenuAction
 {
     Open,
     OpenWith,
+    Properties,
     CopyToTarget,
     MoveToTarget,
     CopyToClipboard,
@@ -36,6 +37,7 @@ public enum ContextMenuAction
     PasteFromClipboard,
     CopyFullPath,
     CreateDirectory,
+    CreateTextDocument,
     Rename,
     RecycleDelete,
     UndoDelete,

@@ -23,6 +23,7 @@ public partial class App
 
         var dataRoot = ResolveDataRoot(e.Args);
         var launchRequest = LaunchRequest.Parse(e.Args);
+        var completedUpdateVersion = GetArgumentValue(e.Args, "--update-complete");
         _singleInstance = new SingleInstanceCoordinator(dataRoot);
         if (!_singleInstance.IsPrimary)
         {
@@ -66,6 +67,7 @@ public partial class App
         var autoStartService = new WindowsAutoStartService();
         var shortcutCreationService = new ShellShortcutCreationService();
         var openWithService = new ShellOpenWithService();
+        var propertiesService = new ShellPropertiesService();
         var managedRecycleService = new ManagedNetworkRecycleService();
         var recycleBinRestoreService = new ShellRecycleBinRestoreService();
         var viewModel = new MainWindowViewModel(
@@ -82,6 +84,7 @@ public partial class App
             uiPreferencesStore,
             shortcutCreationService,
             openWithService,
+            propertiesService,
             autoStartService,
             managedRecycleService,
             recycleBinRestoreService)
@@ -110,6 +113,19 @@ public partial class App
         {
             await HandleLaunchRequestAsync(pending);
         }
+
+        if (!string.IsNullOrWhiteSpace(completedUpdateVersion))
+        {
+            _ = Dispatcher.BeginInvoke(
+                System.Windows.Threading.DispatcherPriority.ContextIdle,
+                new Action(() => MessageBox.Show(
+                    window,
+                    $"MYTC 已升级到 {completedUpdateVersion}。\n\n" +
+                    "用户配置目录 data 未被覆盖。",
+                    "MYTC 升级完成",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information)));
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -130,6 +146,21 @@ public partial class App
         }
 
         return Path.Combine(AppContext.BaseDirectory, "data");
+    }
+
+    private static string? GetArgumentValue(
+        IReadOnlyList<string> arguments,
+        string name)
+    {
+        for (var index = 0; index < arguments.Count - 1; index++)
+        {
+            if (StringComparer.OrdinalIgnoreCase.Equals(arguments[index], name))
+            {
+                return arguments[index + 1].Trim().Trim('\"');
+            }
+        }
+
+        return null;
     }
 
     private void OnLaunchRequestReceived(LaunchRequest request)

@@ -199,6 +199,7 @@ public sealed class ShortcutManager(IShortcutStore store)
             ShortcutAction.RestoreFourPanes => "恢复四窗格",
             ShortcutAction.FocusAddressBar => "激活当前地址栏",
             ShortcutAction.NavigateUp => "上级目录",
+            ShortcutAction.ShowProperties => "属性",
             _ => action.ToString(),
         };
     }

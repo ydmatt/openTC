@@ -71,6 +71,13 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
                 Action: ShortcutAction.NavigateUp,
                 Gesture: "Backspace",
             });
+        Assert.Contains(
+            defaults.Bindings,
+            binding => binding is
+            {
+                Action: ShortcutAction.ShowProperties,
+                Gesture: "Alt+Enter",
+            });
         Assert.Equal(
             "Ctrl+Shift+T",
             ShortcutManager.FormatChord(
@@ -208,6 +215,9 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
         Assert.Contains(loaded.Bindings, binding =>
             binding.Action == ShortcutAction.RecycleDelete &&
             binding.Gesture == "Ctrl+D");
+        Assert.Contains(loaded.Bindings, binding =>
+            binding.Action == ShortcutAction.ShowProperties &&
+            binding.Gesture == "Alt+Enter");
     }
 
     [Fact]
@@ -290,6 +300,15 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
         Assert.Contains(
             loaded.Items,
             item => item.Action == ContextMenuAction.UndoDelete);
+        Assert.Contains(
+            loaded.Items,
+            item => item.Action == ContextMenuAction.CreateTextDocument &&
+                item.ParentId == "new-submenu" &&
+                item.Label.Contains("&T", StringComparison.Ordinal));
+        Assert.Contains(
+            loaded.Items,
+            item => item.Action == ContextMenuAction.Properties &&
+                item.Label.Contains("&R", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -352,6 +371,13 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
         Assert.Contains(
             loaded.Items,
             item => item.Action == ContextMenuAction.UndoDelete);
+        Assert.Contains(
+            loaded.Items,
+            item => item.Action == ContextMenuAction.CreateTextDocument &&
+                item.ParentId == "new-submenu");
+        Assert.Contains(
+            loaded.Items,
+            item => item.Action == ContextMenuAction.Properties);
     }
 
     [Fact]

@@ -4,7 +4,7 @@ public sealed record ShortcutConfiguration(
     int SchemaVersion,
     IReadOnlyList<ShortcutBinding> Bindings)
 {
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
 }
 
 public sealed record ShortcutBinding(
@@ -32,4 +32,5 @@ public enum ShortcutAction
     RestoreFourPanes,
     FocusAddressBar,
     NavigateUp,
+    ShowProperties,
 }

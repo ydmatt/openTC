@@ -31,6 +31,7 @@ public static class ShortcutDefaults
                 new(ShortcutAction.RestoreFourPanes, "Esc"),
                 new(ShortcutAction.FocusAddressBar, "Alt+D"),
                 new(ShortcutAction.NavigateUp, "Backspace"),
+                new(ShortcutAction.ShowProperties, "Alt+Enter"),
             ]);
     }
 }

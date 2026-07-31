@@ -29,6 +29,7 @@ public sealed class FilePaneViewModel : ObservableObject, IDisposable
     private IReadOnlyList<FileSystemEntry> _selectedItems = [];
     private DriveEntry? _selectedDrive;
     private bool _suppressDriveNavigation;
+    private string? _parentNavigationChildPath;
     private SortDescriptor _sort = SortDescriptor.Default;
     private FileTabViewModel _activeTab;
 
@@ -210,6 +211,13 @@ public sealed class FilePaneViewModel : ObservableObject, IDisposable
     public string SortSummary =>
         $"{GetSortColumnLabel(_sort.Column)} {(_sort.Direction == SortDirection.Ascending ? "↑" : "↓")}";
 
+    public string? ConsumeParentNavigationChildPath()
+    {
+        var path = _parentNavigationChildPath;
+        _parentNavigationChildPath = null;
+        return path;
+    }
+
     public async Task InitializeAsync()
     {
         RefreshDrives();
@@ -363,8 +371,8 @@ public sealed class FilePaneViewModel : ObservableObject, IDisposable
         bool isFixed,
         string? fixedPath)
     {
-        tab.CustomTitle = customTitle.Trim();
         tab.Mode = isFixed ? TabMode.Fixed : TabMode.Normal;
+        tab.CustomTitle = isFixed ? customTitle.Trim() : string.Empty;
         tab.FixedPath = isFixed
             ? string.IsNullOrWhiteSpace(fixedPath)
                 ? tab.CurrentPath
@@ -568,10 +576,16 @@ public sealed class FilePaneViewModel : ObservableObject, IDisposable
 
     public async Task NavigateUpAsync()
     {
+        _parentNavigationChildPath = null;
+        var previousPath = CurrentPath;
         var parent = DirectoryNavigator.GetParent(CurrentPath);
         if (parent is not null)
         {
             await NavigateAsync(parent);
+            if (StringComparer.OrdinalIgnoreCase.Equals(CurrentPath, parent))
+            {
+                _parentNavigationChildPath = previousPath;
+            }
         }
     }
 

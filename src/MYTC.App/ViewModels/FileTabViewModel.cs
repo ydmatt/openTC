@@ -53,6 +53,7 @@ public sealed class FileTabViewModel : ObservableObject
             if (SetProperty(ref _mode, value))
             {
                 OnPropertyChanged(nameof(IsFixed));
+                OnPropertyChanged(nameof(DisplayTitle));
             }
         }
     }
@@ -74,7 +75,13 @@ public sealed class FileTabViewModel : ObservableObject
     public string? FixedPath
     {
         get => _fixedPath;
-        set => SetProperty(ref _fixedPath, value);
+        set
+        {
+            if (SetProperty(ref _fixedPath, value))
+            {
+                OnPropertyChanged(nameof(DisplayTitle));
+            }
+        }
     }
 
     public bool IsActive
@@ -87,16 +94,19 @@ public sealed class FileTabViewModel : ObservableObject
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(CustomTitle))
+            if (IsFixed && !string.IsNullOrWhiteSpace(CustomTitle))
             {
                 return CustomTitle;
             }
 
-            var trimmed = CurrentPath.TrimEnd(
+            var titlePath = IsFixed && !string.IsNullOrWhiteSpace(FixedPath)
+                ? FixedPath
+                : CurrentPath;
+            var trimmed = titlePath.TrimEnd(
                 Path.DirectorySeparatorChar,
                 Path.AltDirectorySeparatorChar);
             var folderName = Path.GetFileName(trimmed);
-            return string.IsNullOrWhiteSpace(folderName) ? CurrentPath : folderName;
+            return string.IsNullOrWhiteSpace(folderName) ? titlePath : folderName;
         }
     }
 

@@ -32,6 +32,10 @@ public sealed class MainWindowSmokeTests
         var fixedHome = Directory.CreateDirectory(Path.Combine(sandbox, "fixed-home")).FullName;
         var nested = Directory.CreateDirectory(
             Path.Combine(fixedHome, "nested")).FullName;
+        Directory.CreateDirectory(Path.Combine(fixedHome, "before-nested"));
+        Directory.CreateDirectory(Path.Combine(fixedHome, "烟草甲"));
+        Directory.CreateDirectory(Path.Combine(fixedHome, "2026烟草乙"));
+        Directory.CreateDirectory(Path.Combine(fixedHome, "2026烟草丙"));
         Directory.CreateDirectory(Path.Combine(nested, "child"));
         await File.WriteAllTextAsync(
             Path.Combine(nested, "inside.txt"),
@@ -322,6 +326,11 @@ public sealed class MainWindowSmokeTests
                         window.UpdateLayout();
                         var paneFileGrid = Assert.IsType<DataGrid>(
                             paneControl.FindName("FileGrid"));
+                        var nestedEntry = Assert.Single(
+                            pane.Items,
+                            item => item.Kind == EntryKind.Directory &&
+                                item.Name == "nested");
+                        var nestedIndex = pane.Items.IndexOf(nestedEntry);
                         await pane.NavigateAsync(nested);
                         paneFileGrid.Focus();
                         Keyboard.Focus(paneFileGrid);
@@ -337,10 +346,10 @@ public sealed class MainWindowSmokeTests
                         Assert.True(backspaceEvent.Handled);
                         await Task.Delay(100);
                         Assert.Equal(fixedHome, pane.CurrentPath);
-                        Assert.Equal(0, paneFileGrid.SelectedIndex);
-                        Assert.Same(
-                            pane.Items[0],
-                            paneFileGrid.SelectedItem);
+                        Assert.Equal(
+                            nested,
+                            Assert.IsType<FileSystemEntry>(
+                                paneFileGrid.SelectedItem).FullPath);
                         Assert.IsType<DataGridCell>(
                             Keyboard.FocusedElement);
                         var focusSink = Assert.IsAssignableFrom<Button>(
@@ -357,9 +366,9 @@ public sealed class MainWindowSmokeTests
                         };
                         window.RaiseEvent(downEvent);
                         Assert.True(downEvent.Handled);
-                        Assert.Equal(1, paneFileGrid.SelectedIndex);
+                        Assert.Equal(nestedIndex + 1, paneFileGrid.SelectedIndex);
                         Assert.Same(
-                            pane.Items[1],
+                            pane.Items[nestedIndex + 1],
                             paneFileGrid.SelectedItem);
                         var repeatedDownEvent = new KeyEventArgs(
                             Keyboard.PrimaryDevice,
@@ -371,14 +380,10 @@ public sealed class MainWindowSmokeTests
                         };
                         window.RaiseEvent(repeatedDownEvent);
                         Assert.True(repeatedDownEvent.Handled);
-                        Assert.Equal(2, paneFileGrid.SelectedIndex);
+                        Assert.Equal(nestedIndex + 2, paneFileGrid.SelectedIndex);
                         Assert.Same(
-                            pane.Items[2],
+                            pane.Items[nestedIndex + 2],
                             paneFileGrid.SelectedItem);
-                        var nestedEntry = Assert.Single(
-                            pane.Items,
-                            item => item.Kind == EntryKind.Directory &&
-                                item.Name == "nested");
                         paneFileGrid.SelectedItem = nestedEntry;
                         focusSink.Focus();
                         Keyboard.Focus(focusSink);
@@ -423,6 +428,27 @@ public sealed class MainWindowSmokeTests
                         Assert.True(enterNavigationBackspaceEvent.Handled);
                         await Task.Delay(100);
                         Assert.Equal(fixedHome, pane.CurrentPath);
+                        Assert.Equal(
+                            nested,
+                            Assert.IsType<FileSystemEntry>(
+                                paneFileGrid.SelectedItem).FullPath);
+                        Assert.True(paneControl.TryQuickLocate("烟草"));
+                        var firstTobacco = Assert.IsType<FileSystemEntry>(
+                            paneFileGrid.SelectedItem);
+                        Assert.Contains("烟草", firstTobacco.Name);
+                        Assert.True(paneControl.TryCycleQuickLocate(1));
+                        var secondTobacco = Assert.IsType<FileSystemEntry>(
+                            paneFileGrid.SelectedItem);
+                        Assert.Contains("烟草", secondTobacco.Name);
+                        Assert.NotEqual(firstTobacco.Name, secondTobacco.Name);
+                        Assert.True(paneControl.TryCycleQuickLocate(1));
+                        var thirdTobacco = Assert.IsType<FileSystemEntry>(
+                            paneFileGrid.SelectedItem);
+                        Assert.Contains("烟草", thirdTobacco.Name);
+                        Assert.NotEqual(firstTobacco.Name, thirdTobacco.Name);
+                        Assert.NotEqual(secondTobacco.Name, thirdTobacco.Name);
+                        Assert.True(paneControl.TryCycleQuickLocate(1));
+                        Assert.Same(firstTobacco, paneFileGrid.SelectedItem);
                         var switchedPane = viewModel.Panes[1];
                         await switchedPane.NavigateAsync(fixedHome);
                         var switchedPaneControl =
@@ -456,7 +482,9 @@ public sealed class MainWindowSmokeTests
                         window.RaiseEvent(switchedPaneDownEvent);
                         Assert.True(switchedPaneDownEvent.Handled);
                         Assert.Equal(1, switchedPaneGrid.SelectedIndex);
-                        Assert.Equal(0, paneFileGrid.SelectedIndex);
+                        Assert.Equal(
+                            pane.Items.IndexOf(firstTobacco),
+                            paneFileGrid.SelectedIndex);
                         switchedPaneControl.ExtendFileSelectionFromKeyboard(1);
                         Assert.Equal(2, switchedPaneGrid.SelectedItems.Count);
                         Assert.Contains(
@@ -532,8 +560,16 @@ public sealed class MainWindowSmokeTests
                         Assert.Equal("fixed-home", tab.CustomTitle);
                         await pane.NavigateAsync(away);
                         Assert.Equal(away, pane.CurrentPath);
+                        Assert.Equal("fixed-home", tab.DisplayTitle);
                         await pane.SelectTabAsync(tab);
                         Assert.Equal(fixedHome, pane.CurrentPath);
+                        await pane.ApplyTabSettingsAsync(
+                            tab,
+                            "不应保留",
+                            isFixed: false,
+                            fixedPath: null);
+                        await pane.NavigateAsync(nested);
+                        Assert.Equal("nested", tab.DisplayTitle);
                         var targetPane = Assert.IsType<FilePaneViewModel>(
                             viewModel.TargetPane);
                         var dragTargetCount = targetPane.Tabs.Count;

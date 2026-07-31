@@ -44,6 +44,22 @@ public sealed class FileNameQuickLocatorTests
         Assert.Equal(1, FileNameQuickLocator.FindMatchIndex(entries, "甘肃"));
     }
 
+    [Fact]
+    public void FindMatchIndexes_ReturnsAllMatchesInFolderFirstOrder()
+    {
+        var entries = new[]
+        {
+            Entry("烟草说明.txt", EntryKind.File),
+            Entry("2026烟草乙", EntryKind.Directory),
+            Entry("烟草甲", EntryKind.Directory),
+            Entry("2026烟草丙", EntryKind.Directory),
+        };
+
+        Assert.Equal(
+            [2, 1, 3, 0],
+            FileNameQuickLocator.FindMatchIndexes(entries, "烟草"));
+    }
+
     private static FileSystemEntry Entry(string name, EntryKind kind)
     {
         return new FileSystemEntry(

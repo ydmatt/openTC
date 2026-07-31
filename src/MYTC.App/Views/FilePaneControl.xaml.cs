@@ -22,6 +22,7 @@ public partial class FilePaneControl
     private int _keyboardSelectionAnchorIndex = -1;
     private int _keyboardSelectionCaretIndex = -1;
     private bool _applyingKeyboardSelection;
+    private IReadOnlyList<int> _quickLocateMatchIndexes = [];
 
     public FilePaneControl()
     {
@@ -331,6 +332,7 @@ public partial class FilePaneControl
         {
             _keyboardSelectionAnchorIndex = FileGrid.SelectedIndex;
             _keyboardSelectionCaretIndex = FileGrid.SelectedIndex;
+            _quickLocateMatchIndexes = [];
         }
 
         if (ViewModel is not null)
@@ -362,6 +364,11 @@ public partial class FilePaneControl
         }
 
         e.Handled = true;
+        if (TryCycleQuickLocate(e.Key == Key.Down ? 1 : -1))
+        {
+            return;
+        }
+
         MoveFileGridSelection(e.Key == Key.Down ? 1 : -1);
     }
 
@@ -444,20 +451,21 @@ public partial class FilePaneControl
 
     private void OnFileGridDragOver(object sender, DragEventArgs e)
     {
+        var isRightDrag = e.Data.GetDataPresent(RightDragDataFormat);
         if (!e.Data.GetDataPresent(DataFormats.FileDrop) ||
             ViewModel is null ||
             !Directory.Exists(ViewModel.CurrentPath) ||
             e.Data.GetData(DataFormats.FileDrop) is not string[] paths ||
-            FileDropGuards.IsSameDirectoryDrop(
+            (!isRightDrag && FileDropGuards.IsSameDirectoryDrop(
                 ViewModel.CurrentPath,
-                paths))
+                paths)))
         {
             e.Effects = DragDropEffects.None;
             e.Handled = true;
             return;
         }
 
-        e.Effects = e.Data.GetDataPresent(RightDragDataFormat)
+        e.Effects = isRightDrag
             ? DragDropEffects.Link
             : (e.KeyStates & DragDropKeyStates.ShiftKey) != 0
                 ? DragDropEffects.Move
@@ -474,7 +482,8 @@ public partial class FilePaneControl
             return;
         }
 
-        if (FileDropGuards.IsSameDirectoryDrop(
+        var isRightDrag = e.Data.GetDataPresent(RightDragDataFormat);
+        if (!isRightDrag && FileDropGuards.IsSameDirectoryDrop(
                 ViewModel.CurrentPath,
                 paths))
         {
@@ -484,7 +493,7 @@ public partial class FilePaneControl
         }
 
         e.Handled = true;
-        if (e.Data.GetDataPresent(RightDragDataFormat))
+        if (isRightDrag)
         {
             e.Effects = DragDropEffects.Link;
             await window.HandleRightFileDropAsync(ViewModel, paths);
@@ -555,15 +564,68 @@ public partial class FilePaneControl
             return false;
         }
 
-        var index = FileNameQuickLocator.FindMatchIndex(
+        _quickLocateMatchIndexes = FileNameQuickLocator.FindMatchIndexes(
             ViewModel.Items,
             prefix);
-        if (index < 0)
+        if (_quickLocateMatchIndexes.Count == 0)
         {
             return false;
         }
 
         ViewModel.RequestActivation();
+        SelectAndFocusFileItem(_quickLocateMatchIndexes[0]);
+        return true;
+    }
+
+    public bool TryCycleQuickLocate(int offset)
+    {
+        if (_quickLocateMatchIndexes.Count == 0 || offset == 0)
+        {
+            return false;
+        }
+
+        var currentMatchIndex = -1;
+        for (var index = 0; index < _quickLocateMatchIndexes.Count; index++)
+        {
+            if (_quickLocateMatchIndexes[index] == FileGrid.SelectedIndex)
+            {
+                currentMatchIndex = index;
+                break;
+            }
+        }
+
+        var nextMatchIndex = currentMatchIndex < 0
+            ? offset > 0 ? 0 : _quickLocateMatchIndexes.Count - 1
+            : (currentMatchIndex + offset + _quickLocateMatchIndexes.Count) %
+                _quickLocateMatchIndexes.Count;
+        SelectAndFocusFileItem(_quickLocateMatchIndexes[nextMatchIndex]);
+        return true;
+    }
+
+    public bool FocusFileItemByPath(string fullPath)
+    {
+        if (ViewModel is null || string.IsNullOrWhiteSpace(fullPath))
+        {
+            return false;
+        }
+
+        var index = -1;
+        for (var itemIndex = 0; itemIndex < ViewModel.Items.Count; itemIndex++)
+        {
+            if (StringComparer.OrdinalIgnoreCase.Equals(
+                    ViewModel.Items[itemIndex].FullPath,
+                    fullPath))
+            {
+                index = itemIndex;
+                break;
+            }
+        }
+
+        if (index < 0 || index >= FileGrid.Items.Count)
+        {
+            return false;
+        }
+
         SelectAndFocusFileItem(index);
         return true;
     }

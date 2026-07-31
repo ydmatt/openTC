@@ -13,73 +13,72 @@ public static class FileNameQuickLocator
         IReadOnlyList<FileSystemEntry> entries,
         string prefix)
     {
+        return FindMatchIndexes(entries, prefix).FirstOrDefault(-1);
+    }
+
+    public static IReadOnlyList<int> FindMatchIndexes(
+        IReadOnlyList<FileSystemEntry> entries,
+        string prefix)
+    {
         ArgumentNullException.ThrowIfNull(entries);
         if (string.IsNullOrWhiteSpace(prefix))
         {
-            return -1;
+            return [];
         }
 
         var query = prefix.Trim();
-        var directoryStartsWithIndex = FindIndex(
+        return [
+            .. FindIndexes(
             entries,
             query,
             entry => entry.Kind == EntryKind.Directory,
             static (name, value) => name.StartsWith(
                 value,
-                StringComparison.OrdinalIgnoreCase));
-        if (directoryStartsWithIndex >= 0)
-        {
-            return directoryStartsWithIndex;
-        }
-
-        var directoryContainsIndex = FindIndex(
+                StringComparison.OrdinalIgnoreCase)),
+            .. FindIndexes(
             entries,
             query,
             entry => entry.Kind == EntryKind.Directory,
             static (name, value) => name.Contains(
                 value,
-                StringComparison.OrdinalIgnoreCase));
-        if (directoryContainsIndex >= 0)
-        {
-            return directoryContainsIndex;
-        }
-
-        var fileStartsWithIndex = FindIndex(
+                StringComparison.OrdinalIgnoreCase),
+            excludeStartsWith: true),
+            .. FindIndexes(
             entries,
             query,
             entry => entry.Kind == EntryKind.File,
             static (name, value) => name.StartsWith(
                 value,
-                StringComparison.OrdinalIgnoreCase));
-        if (fileStartsWithIndex >= 0)
-        {
-            return fileStartsWithIndex;
-        }
-
-        return FindIndex(
+                StringComparison.OrdinalIgnoreCase)),
+            .. FindIndexes(
             entries,
             query,
             entry => entry.Kind == EntryKind.File,
             static (name, value) => name.Contains(
                 value,
-                StringComparison.OrdinalIgnoreCase));
+                StringComparison.OrdinalIgnoreCase),
+            excludeStartsWith: true),
+        ];
     }
 
-    private static int FindIndex(
+    private static IEnumerable<int> FindIndexes(
         IReadOnlyList<FileSystemEntry> entries,
         string query,
         Func<FileSystemEntry, bool> filter,
-        Func<string, string, bool> nameMatches)
+        Func<string, string, bool> nameMatches,
+        bool excludeStartsWith = false)
     {
         for (var index = 0; index < entries.Count; index++)
         {
             var entry = entries[index];
-            if (filter(entry) && nameMatches(entry.Name, query))
+            if (filter(entry) &&
+                nameMatches(entry.Name, query) &&
+                (!excludeStartsWith || !entry.Name.StartsWith(
+                    query,
+                    StringComparison.OrdinalIgnoreCase)))
             {
-                return index;
+                yield return index;
             }
         }
-
-        return -1;
     }
 }

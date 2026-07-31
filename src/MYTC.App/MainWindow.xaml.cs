@@ -272,6 +272,7 @@ public partial class MainWindow
             return;
         }
 
+        _fileListKeyboardPane = ViewModel.ActivePane;
         var candidate = _quickLocatePrefix + e.Text;
         if (!control.TryQuickLocate(candidate))
         {
@@ -386,12 +387,16 @@ public partial class MainWindow
                 {
                     var previousPath = upPane.CurrentPath;
                     await upPane.NavigateUpAsync();
+                    var restorePath =
+                        upPane.ConsumeParentNavigationChildPath();
                     if (!StringComparer.OrdinalIgnoreCase.Equals(
                             previousPath,
                             upPane.CurrentPath))
                     {
                         await Dispatcher.InvokeAsync(
-                            () => RestoreFileListKeyboardNavigation(upPane),
+                            () => RestoreFileListKeyboardNavigation(
+                                upPane,
+                                restorePath),
                             System.Windows.Threading.DispatcherPriority.ContextIdle);
                     }
                 }
@@ -1260,14 +1265,15 @@ public partial class MainWindow
     public async Task HandleFileDropAsync(
         FilePaneViewModel destinationPane,
         IReadOnlyList<string> sourcePaths,
-        bool move)
+        bool move,
+        bool allowSameDirectory = false)
     {
         if (ViewModel is null || ViewModel.IsOperationRunning)
         {
             return;
         }
 
-        if (FileDropGuards.IsSameDirectoryDrop(
+        if (!allowSameDirectory && FileDropGuards.IsSameDirectoryDrop(
                 destinationPane.CurrentPath,
                 sourcePaths))
         {
@@ -1308,22 +1314,24 @@ public partial class MainWindow
     {
         if (ViewModel is null ||
             ViewModel.IsOperationRunning ||
-            sourcePaths.Count == 0 ||
-            FileDropGuards.IsSameDirectoryDrop(
-                destinationPane.CurrentPath,
-                sourcePaths))
+            sourcePaths.Count == 0)
         {
             return;
         }
 
-        var choice = await ShowRightDragMenuAsync();
+        var isSameDirectory = FileDropGuards.IsSameDirectoryDrop(
+            destinationPane.CurrentPath,
+            sourcePaths);
+        var choice = await ShowRightDragMenuAsync(
+            includeMove: !isSameDirectory);
         switch (choice)
         {
             case RightDragChoice.Copy:
                 await HandleFileDropAsync(
                     destinationPane,
                     sourcePaths,
-                    move: false);
+                    move: false,
+                    allowSameDirectory: true);
                 break;
             case RightDragChoice.Move:
                 await HandleFileDropAsync(
@@ -1350,7 +1358,7 @@ public partial class MainWindow
         }
     }
 
-    private Task<RightDragChoice?> ShowRightDragMenuAsync()
+    private Task<RightDragChoice?> ShowRightDragMenuAsync(bool includeMove = true)
     {
         var completion =
             new TaskCompletionSource<RightDragChoice?>(
@@ -1362,7 +1370,10 @@ public partial class MainWindow
         };
 
         AddChoice("复制到此处", RightDragChoice.Copy);
-        AddChoice("移动到此处", RightDragChoice.Move);
+        if (includeMove)
+        {
+            AddChoice("移动到此处", RightDragChoice.Move);
+        }
         menu.Items.Add(new Separator());
         AddChoice(
             "在当前位置创建快捷方式",
@@ -2274,8 +2285,12 @@ public partial class MainWindow
                 }
                 else
                 {
-                    control.MoveFileSelectionFromKeyboard(
-                        eventKey == Key.Down ? 1 : -1);
+                    if (!control.TryCycleQuickLocate(
+                            eventKey == Key.Down ? 1 : -1))
+                    {
+                        control.MoveFileSelectionFromKeyboard(
+                            eventKey == Key.Down ? 1 : -1);
+                    }
                 }
 
                 return true;
@@ -2306,12 +2321,15 @@ public partial class MainWindow
                 pane.RequestActivation();
                 var previousPath = pane.CurrentPath;
                 await pane.NavigateUpAsync();
+                var restorePath = pane.ConsumeParentNavigationChildPath();
                 if (!StringComparer.OrdinalIgnoreCase.Equals(
                         previousPath,
                         pane.CurrentPath))
                 {
                     await Dispatcher.InvokeAsync(
-                        () => RestoreFileListKeyboardNavigation(pane),
+                        () => RestoreFileListKeyboardNavigation(
+                            pane,
+                            restorePath),
                         System.Windows.Threading.DispatcherPriority.ContextIdle);
                 }
 
@@ -2403,7 +2421,8 @@ public partial class MainWindow
     }
 
     private void RestoreFileListKeyboardNavigation(
-        FilePaneViewModel pane)
+        FilePaneViewModel pane,
+        string? preferredPath = null)
     {
         _fileListKeyboardPane = pane;
         if (ViewModel?.ActivePane is not null &&
@@ -2416,7 +2435,14 @@ public partial class MainWindow
             .FirstOrDefault(candidate =>
                 candidate.IsVisible &&
                 ReferenceEquals(candidate.DataContext, pane));
-        control?.FocusFirstFileItem();
+        if (control is null ||
+            (!string.IsNullOrWhiteSpace(preferredPath) &&
+             control.FocusFileItemByPath(preferredPath)))
+        {
+            return;
+        }
+
+        control.FocusFirstFileItem();
     }
 
     private DataGrid? FindActiveFileGrid()

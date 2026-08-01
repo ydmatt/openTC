@@ -367,3 +367,9 @@
 - 新建文件夹和文本文档后会选中并聚焦刚创建的项目；重命名文件默认仅选中文件名主体，目录仍选择完整名称。
 - Release 测试 74/74 通过；正式打包、独立启动/单实例转发烟雾测试和更新器备份/回滚/`data` 保留测试均通过。
 - 已交付完整绿色目录 `T:\mytc-releases\MYTC-v1.0.15-win-x64` 与升级 ZIP `T:\mytc-updates\MYTC-v1.0.15-win-x64.zip`；目录清单为 407 个文件、总计 313,612,051 字节，且相对路径和文件长度均与源发布目录一致。ZIP SHA-256：`3909B2A820C4BC7B820914D7D08907B738BE86B121DEC5E2D088D96EC2E37BAE`。
+
+## 2026-08-01 v1.0.16 Alt+Enter 路由修复
+
+- 用户试用 v1.0.15 确认 `Alt+Enter` 仍表现为普通 `Enter`。根因是 `Key.System + Return` 的事件虽在快捷键格式化层被归一化为 Alt+Enter，但更早执行的文件列表导航仍只读取 `Keyboard.Modifiers`；该时刻 WPF 未暴露 Alt，导致其误入普通 Enter 的打开分支。
+- 文件列表导航和直接 Enter 打开分支现在统一使用事件级修饰键：`Key.System` 强制附带 Alt，因此不会再吞掉 `Alt+Enter`，而会继续命中“属性”快捷键。
+- 自动化测试 74/74 通过，v1.0.16 独立启动/单实例转发烟雾测试通过。完整绿色目录 `T:\mytc-releases\MYTC-v1.0.16-win-x64` 与升级 ZIP `T:\mytc-updates\MYTC-v1.0.16-win-x64.zip` 均已生成；目录 407 文件、313,612,051 字节，和源发布目录清单一致。ZIP SHA-256：`2C0009B3A11B2F5CE87354C6C18BCF6D2D31FC06154599A683C76E073E3CF3FC`。

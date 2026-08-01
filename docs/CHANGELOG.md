@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-08-01 — v1.0.16
+
+### Fixed
+
+- 修复 `Alt+Enter` 被文件列表的普通 `Enter` 导航提前截获的问题。WPF 发送 `Key.System + Return` 时，文件列表路由会显式保留 Alt 修饰键并交给属性快捷键处理，不再打开文件或进入文件夹。
+
+### Verified
+
+- Release 自动化测试 74/74 通过。
+
 ## 2026-08-01 — v1.0.15
 
 ### Added

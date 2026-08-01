@@ -168,14 +168,19 @@ public partial class MainWindow
         }
 
         var eventKey = GetEventKey(e);
-        if (await TryHandleFileListKeyboardCommandAsync(e, eventKey))
+        var eventModifiers = GetEventModifiers(e);
+        if (await TryHandleFileListKeyboardCommandAsync(
+                e,
+                eventKey,
+                eventModifiers))
         {
             return;
         }
 
         SynchronizeFocusedFilePaneSelection();
 
-        if (eventKey == Key.Enter &&
+        if (eventModifiers == ModifierKeys.None &&
+            eventKey == Key.Enter &&
             !e.IsRepeat &&
             TryGetFocusedFileGrid(out var focusedPane, out var focusedGrid) &&
             focusedGrid.SelectedItem is FileSystemEntry entry)
@@ -225,7 +230,7 @@ public partial class MainWindow
         {
             if (action == ShortcutAction.FocusAddressBar &&
                 (e.Key == Key.System ||
-                 Keyboard.Modifiers.HasFlag(ModifierKeys.Alt)))
+                 eventModifiers.HasFlag(ModifierKeys.Alt)))
             {
                 _suppressAltMenuActivation = true;
             }
@@ -2373,11 +2378,12 @@ public partial class MainWindow
 
     private async Task<bool> TryHandleFileListKeyboardCommandAsync(
         KeyEventArgs e,
-        Key eventKey)
+        Key eventKey,
+        ModifierKeys eventModifiers)
     {
-        var isPlainNavigation = Keyboard.Modifiers == ModifierKeys.None;
+        var isPlainNavigation = eventModifiers == ModifierKeys.None;
         var isExtendSelection =
-            Keyboard.Modifiers == ModifierKeys.Shift &&
+            eventModifiers == ModifierKeys.Shift &&
             eventKey is Key.Up or Key.Down;
         if (_fileListKeyboardPane is null ||
             (!isPlainNavigation && !isExtendSelection) ||
@@ -2618,6 +2624,12 @@ public partial class MainWindow
     private static Key GetEventKey(KeyEventArgs e)
     {
         return e.Key == Key.System ? e.SystemKey : e.Key;
+    }
+
+    private static ModifierKeys GetEventModifiers(KeyEventArgs e)
+    {
+        return Keyboard.Modifiers |
+            (e.Key == Key.System ? ModifierKeys.Alt : ModifierKeys.None);
     }
 
     private static void TryDeleteStagedUpdate(

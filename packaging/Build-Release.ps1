@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.0.17",
+    [string]$Version = "1.0.19",
     [string]$UpdateDrop = ""
 )
 

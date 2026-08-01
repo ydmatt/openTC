@@ -36,6 +36,7 @@ public partial class MainWindow
     private readonly IShortcutCreationService _shortcutCreationService;
     private readonly IOpenWithService _openWithService;
     private readonly IPropertiesService _propertiesService;
+    private readonly IArchiveExtractionService _archiveExtractionService;
     private readonly IAutoStartService _autoStartService;
     private readonly IManagedRecycleService _managedRecycleService;
     private readonly IRecycleBinRestoreService _recycleBinRestoreService;
@@ -62,6 +63,7 @@ public partial class MainWindow
         IShortcutCreationService shortcutCreationService,
         IOpenWithService openWithService,
         IPropertiesService propertiesService,
+        IArchiveExtractionService archiveExtractionService,
         IAutoStartService autoStartService,
         IManagedRecycleService managedRecycleService,
         IRecycleBinRestoreService recycleBinRestoreService,
@@ -74,6 +76,7 @@ public partial class MainWindow
         _shortcutCreationService = shortcutCreationService;
         _openWithService = openWithService;
         _propertiesService = propertiesService;
+        _archiveExtractionService = archiveExtractionService;
         _autoStartService = autoStartService;
         _managedRecycleService = managedRecycleService;
         _recycleBinRestoreService = recycleBinRestoreService;
@@ -100,6 +103,69 @@ public partial class MainWindow
     private MainWindowViewModel? ViewModel => DataContext as MainWindowViewModel;
 
     public string? PreferredWorkspaceName => _uiPreferences.LastWorkspaceName;
+
+    public async Task ConfirmWinRarExecutableAsync()
+    {
+        if (_uiPreferences.HasConfirmedWinRarPath)
+        {
+            return;
+        }
+
+        var suggestedPath = _archiveExtractionService.FindSuggestedExecutablePath();
+        if (!string.IsNullOrWhiteSpace(suggestedPath))
+        {
+            var useSuggested = MessageBox.Show(
+                this,
+                $"检测到 WinRAR：\n{suggestedPath}\n\n是否使用这个位置？",
+                "WinRAR 设置",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (useSuggested == MessageBoxResult.Yes)
+            {
+                _uiPreferences = _uiPreferences with
+                {
+                    HasConfirmedWinRarPath = true,
+                    WinRarExecutablePath = suggestedPath,
+                };
+                await SaveUiPreferencesAsync(_uiPreferences);
+                return;
+            }
+        }
+        else if (MessageBox.Show(
+                     this,
+                     "未检测到 WinRAR。是否现在手动选择 WinRAR.exe？",
+                     "WinRAR 设置",
+                     MessageBoxButton.YesNo,
+                     MessageBoxImage.Question) == MessageBoxResult.No)
+        {
+            _uiPreferences = _uiPreferences with
+            {
+                HasConfirmedWinRarPath = true,
+                WinRarExecutablePath = null,
+            };
+            await SaveUiPreferencesAsync(_uiPreferences);
+            return;
+        }
+
+        var fileDialog = new OpenFileDialog
+        {
+            Title = "选择 WinRAR.exe",
+            Filter = "WinRAR.exe|WinRAR.exe|应用程序|*.exe",
+            CheckFileExists = true,
+            Multiselect = false,
+        };
+        if (fileDialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        _uiPreferences = _uiPreferences with
+        {
+            HasConfirmedWinRarPath = true,
+            WinRarExecutablePath = fileDialog.FileName,
+        };
+        await SaveUiPreferencesAsync(_uiPreferences);
+    }
 
     public async Task InitializeSettingsAsync()
     {
@@ -619,6 +685,15 @@ public partial class MainWindow
                 },
                 ],
             ContextMenuAction.Properties => pane.SelectedItems.Count == 1,
+            ContextMenuAction.ExtractHereWithWinRar =>
+                pane.SelectedItems is
+                [
+                {
+                    Kind: EntryKind.File,
+                } archive,
+                ] && _archiveExtractionService.CanExtract(
+                    archive.FullPath,
+                    _uiPreferences.WinRarExecutablePath),
             ContextMenuAction.Rename => pane.SelectedItems.Count == 1,
             ContextMenuAction.UndoDelete => _recycleUndoStack.Count > 0,
             ContextMenuAction.CopyToTarget or
@@ -668,6 +743,9 @@ public partial class MainWindow
             case ContextMenuAction.Properties:
                 ShowProperties(pane);
                 break;
+            case ContextMenuAction.ExtractHereWithWinRar:
+                await ExtractArchiveHereAsync(pane);
+                break;
             case ContextMenuAction.CopyToTarget:
                 await TransferToTargetAsync(FileOperationKind.Copy);
                 break;
@@ -709,6 +787,22 @@ public partial class MainWindow
                 ViewModel?.SetStatusMessage("已刷新当前目录");
                 break;
         }
+    }
+
+    private async Task ExtractArchiveHereAsync(FilePaneViewModel pane)
+    {
+        if (pane.SelectedItems is not [var archive] ||
+            archive.Kind != EntryKind.File)
+        {
+            return;
+        }
+
+        await _archiveExtractionService.ExtractToDirectoryAsync(
+            archive.FullPath,
+            pane.CurrentPath,
+            _uiPreferences.WinRarExecutablePath);
+        await pane.RefreshCurrentAsync();
+        ViewModel?.SetStatusMessage($"已解压：{archive.Name}");
     }
 
     public void PopulateTabContextMenu(
@@ -1026,7 +1120,8 @@ public partial class MainWindow
     {
         var dialog = new GlobalSettingsDialog(
             _uiPreferences.StartWithWindows,
-            _uiPreferences.ConfirmRecycleDelete)
+            _uiPreferences.ConfirmRecycleDelete,
+            _uiPreferences.WinRarExecutablePath)
         {
             Owner = this,
         };
@@ -1043,6 +1138,8 @@ public partial class MainWindow
             {
                 StartWithWindows = dialog.StartWithWindows,
                 ConfirmRecycleDelete = dialog.ConfirmRecycleDelete,
+                HasConfirmedWinRarPath = true,
+                WinRarExecutablePath = dialog.WinRarExecutablePath,
             };
             await SaveUiPreferencesAsync(_uiPreferences);
             ViewModel?.SetStatusMessage("全局设置已保存并立即生效。");

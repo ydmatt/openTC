@@ -7,9 +7,11 @@ public sealed record UiPreferences(
     bool StartWithWindows = false,
     bool IsWorkspaceToolbarVisible = true,
     bool IsSettingsToolbarVisible = true,
-    string? LastWorkspaceName = null)
+    string? LastWorkspaceName = null,
+    bool HasConfirmedWinRarPath = false,
+    string? WinRarExecutablePath = null)
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     public static UiPreferences CreateDefault()
     {
@@ -20,6 +22,8 @@ public sealed record UiPreferences(
             StartWithWindows: false,
             IsWorkspaceToolbarVisible: true,
             IsSettingsToolbarVisible: true,
-            LastWorkspaceName: null);
+            LastWorkspaceName: null,
+            HasConfirmedWinRarPath: false,
+            WinRarExecutablePath: null);
     }
 }

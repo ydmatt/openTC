@@ -69,6 +69,7 @@ public partial class App
         var shortcutCreationService = new ShellShortcutCreationService();
         var openWithService = new ShellOpenWithService();
         var propertiesService = new ShellPropertiesService();
+        var archiveExtractionService = new WinRarArchiveExtractionService();
         var managedRecycleService = new ManagedNetworkRecycleService();
         var recycleBinRestoreService = new ShellRecycleBinRestoreService();
         var viewModel = new MainWindowViewModel(
@@ -86,6 +87,7 @@ public partial class App
             shortcutCreationService,
             openWithService,
             propertiesService,
+            archiveExtractionService,
             autoStartService,
             managedRecycleService,
             recycleBinRestoreService)
@@ -106,6 +108,10 @@ public partial class App
         ScheduleUpdateCompletionNotice(window, completedUpdateVersion);
         await window.InitializeSettingsAsync();
         window.Show();
+        if (!e.Args.Contains("--skip-initial-setup", StringComparer.OrdinalIgnoreCase))
+        {
+            await window.ConfirmWinRarExecutableAsync();
+        }
 
         await viewModel.InitializeAsync(
             launchRequest.WorkspaceName ?? window.PreferredWorkspaceName);

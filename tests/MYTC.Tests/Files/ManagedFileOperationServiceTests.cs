@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MYTC.Domain.Operations;
 using MYTC.Application.Files;
 using MYTC.Infrastructure.Files;
@@ -131,6 +132,41 @@ public sealed class ManagedFileOperationServiceTests : IDisposable
         Assert.Equal("启动脚本.bat", Path.GetFileName(second));
         Assert.Empty(await File.ReadAllBytesAsync(first));
         Assert.Empty(await File.ReadAllBytesAsync(second));
+    }
+
+    [Fact]
+    public async Task WinRarExtraction_UsesSafeExtractHereArgumentsForSupportedArchive()
+    {
+        var directory = CreateDirectory("winrar-extract");
+        var archive = Path.Combine(directory, "assets.rar");
+        var winRar = Path.Combine(directory, "WinRAR.exe");
+        await File.WriteAllBytesAsync(archive, []);
+        await File.WriteAllBytesAsync(winRar, []);
+        ProcessStartInfo? captured = null;
+        var service = new WinRarArchiveExtractionService(
+            () => winRar,
+            (startInfo, _) =>
+            {
+                captured = startInfo;
+                return Task.FromResult(0);
+            });
+
+        Assert.Equal(winRar, service.FindSuggestedExecutablePath());
+        Assert.True(service.CanExtract(archive, winRar));
+        Assert.False(service.CanExtract(
+            Path.Combine(directory, "note.txt"),
+            winRar));
+        Assert.False(service.CanExtract(archive, null));
+
+        await service.ExtractToDirectoryAsync(archive, directory, winRar);
+
+        var arguments = Assert.IsType<ProcessStartInfo>(captured).ArgumentList;
+        Assert.Equal(winRar, captured!.FileName);
+        Assert.Equal(["x", "-ibck", "-y", "-o-", archive], arguments.Take(5));
+        Assert.Equal(
+            directory + Path.DirectorySeparatorChar,
+            arguments[5]);
+        Assert.False(captured.UseShellExecute);
     }
 
     [Fact]

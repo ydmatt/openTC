@@ -11,6 +11,10 @@ public static class ContextMenuDefaults
             [
                 BuiltIn("open", "打开", ContextMenuAction.Open),
                 BuiltIn("open-with", "打开方式（&H）", ContextMenuAction.OpenWith),
+                BuiltIn(
+                    "winrar-extract-here",
+                    "WinRAR：解压到当前文件夹（&X）",
+                    ContextMenuAction.ExtractHereWithWinRar),
                 Submenu("new-submenu", "新建（&W）"),
                 BuiltIn(
                     "create-directory",

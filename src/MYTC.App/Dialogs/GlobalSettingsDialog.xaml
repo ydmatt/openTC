@@ -3,12 +3,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="全局设置"
         Width="520"
-        Height="275"
+        Height="360"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
     <Grid Margin="20">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -28,11 +30,23 @@
                   Margin="0,15,0,0"
                   Content="将文件或文件夹移到回收站前显示确认窗口" />
         <TextBlock Grid.Row="3"
+                   Margin="0,18,0,5"
+                   Text="WinRAR.exe 位置（用于“解压到当前文件夹”）" />
+        <DockPanel Grid.Row="4">
+            <Button DockPanel.Dock="Right"
+                    MinWidth="86"
+                    Margin="8,0,0,0"
+                    Click="OnBrowseWinRarClick"
+                    Content="浏览…" />
+            <TextBox x:Name="WinRarPathTextBox"
+                     VerticalContentAlignment="Center" />
+        </DockPanel>
+        <TextBlock Grid.Row="5"
                    Margin="0,16,0,0"
                    Foreground="{StaticResource MutedTextBrush}"
                    TextWrapping="Wrap"
                    Text="永久删除始终要求确认。便携版移动到其他目录后，请重新保存一次开机启动设置，以更新程序路径。" />
-        <StackPanel Grid.Row="4"
+        <StackPanel Grid.Row="6"
                     HorizontalAlignment="Right"
                     Orientation="Horizontal">
             <Button MinWidth="82"

@@ -77,6 +77,7 @@ public sealed class MainWindowSmokeTests
                 var deleteConfirmationCount = 0;
                 var openWithService = new RecordingOpenWithService();
                 var propertiesService = new RecordingPropertiesService();
+                var archiveExtractionService = new RecordingArchiveExtractionService();
                 var viewModel = new MainWindowViewModel(
                     new FakeListingService(),
                     new FakeDriveService(sandbox),
@@ -91,6 +92,7 @@ public sealed class MainWindowSmokeTests
                     new ShellShortcutCreationService(),
                     openWithService,
                     propertiesService,
+                    archiveExtractionService,
                     new WindowsAutoStartService(),
                     new ManagedNetworkRecycleService(),
                     new ShellRecycleBinRestoreService(),
@@ -735,6 +737,11 @@ public sealed class MainWindowSmokeTests
                         Assert.Contains(
                             contextMenuDialog.Rows,
                             row => row.Action ==
+                                ContextMenuAction.ExtractHereWithWinRar &&
+                                row.Label.Contains("&X", StringComparison.Ordinal));
+                        Assert.Contains(
+                            contextMenuDialog.Rows,
+                            row => row.Action ==
                                 ContextMenuAction.UndoDelete);
                         SaveWindowPreview(
                             contextMenuDialog,
@@ -764,7 +771,8 @@ public sealed class MainWindowSmokeTests
                         var globalSettingsDialog =
                             new GlobalSettingsDialog(
                                 startWithWindows: false,
-                                confirmRecycleDelete: true)
+                                confirmRecycleDelete: true,
+                                winRarExecutablePath: null)
                             {
                                 Owner = window,
                             };
@@ -930,6 +938,24 @@ public sealed class MainWindowSmokeTests
         {
             LastPath = path;
             Assert.NotEqual(nint.Zero, ownerHandle);
+        }
+    }
+
+    private sealed class RecordingArchiveExtractionService : IArchiveExtractionService
+    {
+        public string? FindSuggestedExecutablePath() => null;
+
+        public bool CanExtract(string archivePath, string? executablePath) =>
+            archivePath.EndsWith(".rar", StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(executablePath);
+
+        public Task ExtractToDirectoryAsync(
+            string archivePath,
+            string destinationDirectory,
+            string? executablePath,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
         }
     }
 

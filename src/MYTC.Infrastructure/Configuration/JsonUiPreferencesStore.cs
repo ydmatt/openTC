@@ -45,6 +45,8 @@ public sealed class JsonUiPreferencesStore(string dataRoot) : IUiPreferencesStor
                     IsWorkspaceToolbarVisible = true,
                     IsSettingsToolbarVisible = true,
                     LastWorkspaceName = null,
+                    HasConfirmedWinRarPath = false,
+                    WinRarExecutablePath = null,
                 }
                 : preferences.SchemaVersion < 3
                     ? preferences with
@@ -53,6 +55,15 @@ public sealed class JsonUiPreferencesStore(string dataRoot) : IUiPreferencesStor
                         IsWorkspaceToolbarVisible = true,
                         IsSettingsToolbarVisible = true,
                         LastWorkspaceName = null,
+                        HasConfirmedWinRarPath = false,
+                        WinRarExecutablePath = null,
+                    }
+                : preferences.SchemaVersion < 4
+                    ? preferences with
+                    {
+                        SchemaVersion = UiPreferences.CurrentSchemaVersion,
+                        HasConfirmedWinRarPath = false,
+                        WinRarExecutablePath = null,
                     }
                 : preferences with
                 {

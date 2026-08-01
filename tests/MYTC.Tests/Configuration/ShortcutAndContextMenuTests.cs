@@ -319,6 +319,10 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
             loaded.Items,
             item => item.Action == ContextMenuAction.Refresh &&
                 item.Label.Contains("&E", StringComparison.Ordinal));
+        Assert.Contains(
+            loaded.Items,
+            item => item.Action == ContextMenuAction.ExtractHereWithWinRar &&
+                item.Label.Contains("&X", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -392,6 +396,10 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
             loaded.Items,
             item => item.Action == ContextMenuAction.Refresh &&
                 item.Label.Contains("&E", StringComparison.Ordinal));
+        Assert.Contains(
+            loaded.Items,
+            item => item.Action == ContextMenuAction.ExtractHereWithWinRar &&
+                item.Label.Contains("&X", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -411,7 +419,9 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
             StartWithWindows: true,
             IsWorkspaceToolbarVisible: false,
             IsSettingsToolbarVisible: false,
-            LastWorkspaceName: "work"));
+            LastWorkspaceName: "work",
+            HasConfirmedWinRarPath: true,
+            WinRarExecutablePath: @"D:\tools\WinRAR\WinRAR.exe"));
         var loaded = await store.LoadAsync();
 
         Assert.True(loaded.IsOperationToolbarVisible);
@@ -420,6 +430,8 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
         Assert.False(loaded.IsWorkspaceToolbarVisible);
         Assert.False(loaded.IsSettingsToolbarVisible);
         Assert.Equal("work", loaded.LastWorkspaceName);
+        Assert.True(loaded.HasConfirmedWinRarPath);
+        Assert.Equal(@"D:\tools\WinRAR\WinRAR.exe", loaded.WinRarExecutablePath);
     }
 
     [Fact]
@@ -458,6 +470,34 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
         Assert.True(loaded.IsOperationToolbarVisible);
         Assert.True(loaded.ConfirmRecycleDelete);
         Assert.False(loaded.StartWithWindows);
+        Assert.False(loaded.HasConfirmedWinRarPath);
+        Assert.Null(loaded.WinRarExecutablePath);
+    }
+
+    [Fact]
+    public async Task Version3UiPreferences_PromptsForWinRarAgain()
+    {
+        Directory.CreateDirectory(_sandbox);
+        await File.WriteAllTextAsync(
+            Path.Combine(_sandbox, "ui-preferences.json"),
+            """
+            {
+              "SchemaVersion": 3,
+              "IsOperationToolbarVisible": false,
+              "ConfirmRecycleDelete": true,
+              "StartWithWindows": false,
+              "IsWorkspaceToolbarVisible": true,
+              "IsSettingsToolbarVisible": true,
+              "LastWorkspaceName": "work"
+            }
+            """);
+
+        var loaded = await new JsonUiPreferencesStore(_sandbox).LoadAsync();
+
+        Assert.Equal(UiPreferences.CurrentSchemaVersion, loaded.SchemaVersion);
+        Assert.False(loaded.HasConfirmedWinRarPath);
+        Assert.Null(loaded.WinRarExecutablePath);
+        Assert.Equal("work", loaded.LastWorkspaceName);
     }
 
     [Fact]

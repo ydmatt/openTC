@@ -32,6 +32,7 @@ try {
         -ArgumentList @(
             "--data-dir",
             $dataRoot,
+            "--skip-initial-setup",
             "--open",
             $firstDirectory) `
         -PassThru
@@ -57,6 +58,7 @@ try {
         -ArgumentList @(
             "--data-dir",
             $dataRoot,
+            "--skip-initial-setup",
             "--open",
             $secondDirectory) `
         -PassThru

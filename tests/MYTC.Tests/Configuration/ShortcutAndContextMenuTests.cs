@@ -83,6 +83,12 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
             ShortcutManager.FormatChord(
                 ModifierKeys.Control | ModifierKeys.Shift,
                 Key.T));
+        Assert.Equal(
+            "Alt+Enter",
+            ShortcutManager.FormatKeyEvent(
+                Key.System,
+                Key.Enter,
+                ModifierKeys.None));
     }
 
     [Fact]

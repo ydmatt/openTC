@@ -110,19 +110,27 @@ public sealed class ManagedFileOperationServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateTextDocument_UsesShellNewStyleNameAndKeepsBoth()
+    public async Task CreateTextDocument_UsesRequestedNameAndPreservesRequestedExtension()
     {
         var directory = CreateDirectory("new-text-document");
 
-        var first = await _service.CreateTextDocumentAsync(directory);
-        var second = await _service.CreateTextDocumentAsync(directory);
+        var suggestedName = _service.GetNewTextDocumentDefaultName();
+        var first = await _service.CreateTextDocumentAsync(
+            directory,
+            "方案说明.txt");
+        var second = await _service.CreateTextDocumentAsync(
+            directory,
+            "启动脚本.bat");
 
+        Assert.EndsWith(".txt", suggestedName, StringComparison.OrdinalIgnoreCase);
         Assert.True(File.Exists(first));
         Assert.True(File.Exists(second));
         Assert.Equal(".txt", Path.GetExtension(first));
-        Assert.Equal(".txt", Path.GetExtension(second));
-        Assert.NotEqual(first, second);
+        Assert.Equal(".bat", Path.GetExtension(second));
+        Assert.Equal("方案说明.txt", Path.GetFileName(first));
+        Assert.Equal("启动脚本.bat", Path.GetFileName(second));
         Assert.Empty(await File.ReadAllBytesAsync(first));
+        Assert.Empty(await File.ReadAllBytesAsync(second));
     }
 
     [Fact]

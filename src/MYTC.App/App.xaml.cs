@@ -15,6 +15,7 @@ public partial class App
     private readonly Queue<LaunchRequest> _pendingRequests = [];
     private SingleInstanceCoordinator? _singleInstance;
     private bool _mainWindowReady;
+    private Action? _showUpdateCompletionNoticeWhenReady;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -102,30 +103,69 @@ public partial class App
         };
 
         MainWindow = window;
+        ScheduleUpdateCompletionNotice(window, completedUpdateVersion);
         await window.InitializeSettingsAsync();
         window.Show();
 
         await viewModel.InitializeAsync(
             launchRequest.WorkspaceName ?? window.PreferredWorkspaceName);
         _mainWindowReady = true;
+        _showUpdateCompletionNoticeWhenReady?.Invoke();
+        _showUpdateCompletionNoticeWhenReady = null;
         await HandleLaunchRequestAsync(launchRequest);
         while (_pendingRequests.TryDequeue(out var pending))
         {
             await HandleLaunchRequestAsync(pending);
         }
 
-        if (!string.IsNullOrWhiteSpace(completedUpdateVersion))
+    }
+
+    private void ScheduleUpdateCompletionNotice(
+        MainWindow window,
+        string? completedUpdateVersion)
+    {
+        if (string.IsNullOrWhiteSpace(completedUpdateVersion))
         {
-            _ = Dispatcher.BeginInvoke(
-                System.Windows.Threading.DispatcherPriority.ContextIdle,
-                new Action(() => MessageBox.Show(
-                    window,
-                    $"MYTC 已升级到 {completedUpdateVersion}。\n\n" +
-                    "用户配置目录 data 未被覆盖。",
-                    "MYTC 升级完成",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information)));
+            return;
         }
+
+        var contentRendered = false;
+        var applicationReady = false;
+        var queued = false;
+        void TryQueueNotice()
+        {
+            if (queued || !contentRendered || !applicationReady)
+            {
+                return;
+            }
+
+            queued = true;
+            _ = Dispatcher.BeginInvoke(
+                System.Windows.Threading.DispatcherPriority.ApplicationIdle,
+                new Action(() =>
+                {
+                    window.Activate();
+                    window.Focus();
+                    MessageBox.Show(
+                        window,
+                        $"MYTC 已升级到 {completedUpdateVersion}。\n\n" +
+                        "用户配置目录 data 未被覆盖。",
+                        "MYTC 升级完成",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }));
+        }
+
+        window.ContentRendered += (_, _) =>
+        {
+            contentRendered = true;
+            TryQueueNotice();
+        };
+        _showUpdateCompletionNoticeWhenReady = () =>
+        {
+            applicationReady = true;
+            TryQueueNotice();
+        };
     }
 
     protected override void OnExit(ExitEventArgs e)

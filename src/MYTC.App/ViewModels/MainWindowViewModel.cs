@@ -423,7 +423,12 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         return created;
     }
 
-    public async Task<string?> CreateTextDocumentAsync()
+    public string GetNewTextDocumentDefaultName()
+    {
+        return _fileOperationService.GetNewTextDocumentDefaultName();
+    }
+
+    public async Task<string?> CreateTextDocumentAsync(string name)
     {
         if (ActivePane is null)
         {
@@ -431,7 +436,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         var created = await _fileOperationService.CreateTextDocumentAsync(
-            ActivePane.CurrentPath);
+            ActivePane.CurrentPath,
+            name);
         await ActivePane.RefreshCurrentAsync();
         StatusMessage = $"已新建文本文档：{Path.GetFileName(created)}";
         return created;

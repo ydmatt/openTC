@@ -44,8 +44,14 @@ public sealed class ManagedFileOperationService : IFileOperationService
             cancellationToken);
     }
 
+    public string GetNewTextDocumentDefaultName()
+    {
+        return ReadTextDocumentShellNew().DisplayName + ".txt";
+    }
+
     public Task<string> CreateTextDocumentAsync(
         string parentDirectory,
+        string requestedName,
         CancellationToken cancellationToken = default)
     {
         return Task.Run(
@@ -53,16 +59,21 @@ public sealed class ManagedFileOperationService : IFileOperationService
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var parent = RequireExistingDirectory(parentDirectory);
-                var shellNew = ReadTextDocumentShellNew();
-                var destination = FindAvailableFileName(
-                    parent,
-                    shellNew.DisplayName + ".txt");
+                var name = ValidateLeafName(requestedName);
+                var destination = Path.Combine(parent, name);
+                if (PathExists(destination))
+                {
+                    throw new IOException($"“{name}”已经存在。");
+                }
 
-                if (shellNew.TemplateFile is { } templateFile)
+                var shellNew = ReadTextDocumentShellNew();
+                if (Path.GetExtension(name).Equals(".txt", StringComparison.OrdinalIgnoreCase) &&
+                    shellNew.TemplateFile is { } templateFile)
                 {
                     File.Copy(templateFile, destination);
                 }
-                else if (shellNew.TemplateData is { } templateData)
+                else if (Path.GetExtension(name).Equals(".txt", StringComparison.OrdinalIgnoreCase) &&
+                    shellNew.TemplateData is { } templateData)
                 {
                     File.WriteAllBytes(destination, templateData);
                 }

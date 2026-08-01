@@ -310,7 +310,25 @@ public sealed class ShortcutManager(IShortcutStore store)
 
     public static string? FormatKeyEvent(KeyEventArgs e)
     {
-        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        return FormatKeyEvent(
+            e.Key,
+            e.SystemKey,
+            Keyboard.Modifiers);
+    }
+
+    public static string? FormatKeyEvent(
+        Key key,
+        Key systemKey,
+        ModifierKeys modifiers)
+    {
+        if (key == Key.System)
+        {
+            key = systemKey;
+            // WPF can report Alt combinations as Key.System before the
+            // modifier state is observable by the routed key event.
+            modifiers |= ModifierKeys.Alt;
+        }
+
         if (key is Key.None or
             Key.LeftCtrl or Key.RightCtrl or
             Key.LeftAlt or Key.RightAlt or
@@ -320,7 +338,7 @@ public sealed class ShortcutManager(IShortcutStore store)
             return null;
         }
 
-        return FormatChord(Keyboard.Modifiers, key);
+        return FormatChord(modifiers, key);
     }
 
     public static string FormatChord(ModifierKeys modifiers, Key key)
@@ -352,6 +370,7 @@ public sealed class ShortcutManager(IShortcutStore store)
                 ((int)key - (int)Key.D0).ToString(
                     System.Globalization.CultureInfo.InvariantCulture),
             Key.Escape => "Esc",
+            Key.Enter => "Enter",
             Key.Delete => "Del",
             Key.Back => "Backspace",
             _ => key.ToString(),

@@ -14,8 +14,11 @@ public interface IFileOperationService
         string requestedName,
         CancellationToken cancellationToken = default);
 
+    string GetNewTextDocumentDefaultName();
+
     Task<string> CreateTextDocumentAsync(
         string parentDirectory,
+        string requestedName,
         CancellationToken cancellationToken = default);
 
     Task<string> RenameAsync(

@@ -1479,7 +1479,13 @@ public partial class MainWindow
 
         try
         {
-            await ViewModel.CreateDirectoryAsync(dialog.Value);
+            var created = await ViewModel.CreateDirectoryAsync(dialog.Value);
+            if (created is not null)
+            {
+                await Dispatcher.InvokeAsync(
+                    () => FindActiveFilePaneControl()?.FocusFileItemByPath(created),
+                    System.Windows.Threading.DispatcherPriority.ContextIdle);
+            }
         }
         catch (Exception exception)
         {
@@ -1494,9 +1500,26 @@ public partial class MainWindow
             return;
         }
 
+        var defaultName = ViewModel.GetNewTextDocumentDefaultName();
+        var extension = Path.GetExtension(defaultName);
+        var baseNameLength = Math.Max(0, defaultName.Length - extension.Length);
+        var dialog = new TextInputDialog(
+            "新建文本文档",
+            "文件名",
+            defaultName,
+            0,
+            baseNameLength)
+        {
+            Owner = this,
+        };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
         try
         {
-            var created = await ViewModel.CreateTextDocumentAsync();
+            var created = await ViewModel.CreateTextDocumentAsync(dialog.Value);
             if (created is not null)
             {
                 await Dispatcher.InvokeAsync(
@@ -1549,15 +1572,21 @@ public partial class MainWindow
             return;
         }
 
+        var selectedEntry = selected[0];
+        var extension = selectedEntry.Kind == EntryKind.File
+            ? Path.GetExtension(selectedEntry.Name)
+            : string.Empty;
         var dialog = new TextInputDialog(
             "重命名",
             "新名称",
-            selected[0].Name)
+            selectedEntry.Name,
+            0,
+            selectedEntry.Name.Length - extension.Length)
         {
             Owner = this,
         };
         if (dialog.ShowDialog() != true ||
-            StringComparer.Ordinal.Equals(dialog.Value, selected[0].Name))
+            StringComparer.Ordinal.Equals(dialog.Value, selectedEntry.Name))
         {
             return;
         }

@@ -730,6 +730,11 @@ public sealed class MainWindowSmokeTests
                         Assert.Contains(
                             contextMenuDialog.Rows,
                             row => row.Action ==
+                                ContextMenuAction.Refresh &&
+                                row.Label.Contains("&E", StringComparison.Ordinal));
+                        Assert.Contains(
+                            contextMenuDialog.Rows,
+                            row => row.Action ==
                                 ContextMenuAction.UndoDelete);
                         SaveWindowPreview(
                             contextMenuDialog,

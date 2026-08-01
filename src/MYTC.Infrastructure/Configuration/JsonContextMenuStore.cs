@@ -259,6 +259,17 @@ public sealed class JsonContextMenuStore : IContextMenuStore
                 properties);
         }
 
+        if (!items.Any(item => item.Action == ContextMenuAction.Refresh))
+        {
+            var refresh = defaults.Single(item =>
+                item.Action == ContextMenuAction.Refresh);
+            var propertiesIndex = items.FindIndex(item =>
+                item.Action == ContextMenuAction.Properties);
+            items.Insert(
+                propertiesIndex >= 0 ? propertiesIndex : items.Count,
+                refresh);
+        }
+
         return new ContextMenuConfiguration(
             ContextMenuConfiguration.CurrentSchemaVersion,
             items);

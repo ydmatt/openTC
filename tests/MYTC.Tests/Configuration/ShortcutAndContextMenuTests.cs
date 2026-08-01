@@ -315,6 +315,10 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
             loaded.Items,
             item => item.Action == ContextMenuAction.Properties &&
                 item.Label.Contains("&R", StringComparison.Ordinal));
+        Assert.Contains(
+            loaded.Items,
+            item => item.Action == ContextMenuAction.Refresh &&
+                item.Label.Contains("&E", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -384,6 +388,10 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
         Assert.Contains(
             loaded.Items,
             item => item.Action == ContextMenuAction.Properties);
+        Assert.Contains(
+            loaded.Items,
+            item => item.Action == ContextMenuAction.Refresh &&
+                item.Label.Contains("&E", StringComparison.Ordinal));
     }
 
     [Fact]

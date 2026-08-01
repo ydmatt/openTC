@@ -704,6 +704,10 @@ public partial class MainWindow
             case ContextMenuAction.PermanentDelete:
                 await DeleteAsync(permanent: true);
                 break;
+            case ContextMenuAction.Refresh:
+                await pane.RefreshCurrentAsync();
+                ViewModel?.SetStatusMessage("已刷新当前目录");
+                break;
         }
     }
 

@@ -35,6 +35,7 @@ public static class ContextMenuDefaults
                 BuiltIn("delete", "移到回收站", ContextMenuAction.RecycleDelete),
                 BuiltIn("undo-delete", "撤销删除（&U）", ContextMenuAction.UndoDelete),
                 BuiltIn("delete-permanent", "永久删除", ContextMenuAction.PermanentDelete),
+                BuiltIn("refresh", "刷新（&E）", ContextMenuAction.Refresh),
                 BuiltIn("properties", "属性（&R）", ContextMenuAction.Properties),
             ]);
     }

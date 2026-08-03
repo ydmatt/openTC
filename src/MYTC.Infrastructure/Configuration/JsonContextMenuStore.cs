@@ -282,6 +282,20 @@ public sealed class JsonContextMenuStore : IContextMenuStore
                 extractHere);
         }
 
+        if (!items.Any(item =>
+                item.Action ==
+                    ContextMenuAction.ExtractToNamedDirectoryWithWinRar))
+        {
+            var extractNamed = defaults.Single(item =>
+                item.Action ==
+                    ContextMenuAction.ExtractToNamedDirectoryWithWinRar);
+            var extractHereIndex = items.FindIndex(item =>
+                item.Action == ContextMenuAction.ExtractHereWithWinRar);
+            items.Insert(
+                extractHereIndex >= 0 ? extractHereIndex + 1 : 0,
+                extractNamed);
+        }
+
         return new ContextMenuConfiguration(
             ContextMenuConfiguration.CurrentSchemaVersion,
             items);

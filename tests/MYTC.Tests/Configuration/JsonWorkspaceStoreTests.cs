@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MYTC.Domain.Files;
 using MYTC.Domain.Workspaces;
 using MYTC.Infrastructure.Configuration;
@@ -25,6 +26,64 @@ public sealed class JsonWorkspaceStoreTests : IDisposable
         Assert.Equal(expected.ActivePaneId, actual.ActivePaneId);
         Assert.Equal(expected.Panes[0].Tabs[0].FixedPath, actual.Panes[0].Tabs[0].FixedPath);
         Assert.Equal(expected.Panes[0].Tabs[0].BackHistory, actual.Panes[0].Tabs[0].BackHistory);
+    }
+
+    [Fact]
+    public async Task Workspace_RoundTripsTaskbarIconKey()
+    {
+        var store = new JsonWorkspaceStore(_sandbox);
+        var expected = CreateSnapshot("work", @"D:\work") with
+        {
+            IconKey = "W",
+        };
+
+        await store.SaveWorkspaceAsync("work", expected);
+        var actual = await store.LoadWorkspaceAsync("work");
+
+        Assert.NotNull(actual);
+        Assert.Equal(WorkspaceSnapshot.CurrentSchemaVersion, actual.SchemaVersion);
+        Assert.Equal("W", actual.IconKey);
+    }
+
+    [Fact]
+    public async Task Version1Workspace_MigratesToAutomaticIcon()
+    {
+        var workspaceRoot = Directory.CreateDirectory(
+            Path.Combine(_sandbox, "workspaces"));
+        var oldSnapshot = CreateSnapshot("work", @"D:\work") with
+        {
+            SchemaVersion = 1,
+            IconKey = null,
+        };
+        await File.WriteAllTextAsync(
+            Path.Combine(workspaceRoot.FullName, "work.json"),
+            JsonSerializer.Serialize(oldSnapshot));
+
+        var loaded = await new JsonWorkspaceStore(_sandbox)
+            .LoadWorkspaceAsync("work");
+
+        Assert.NotNull(loaded);
+        Assert.Equal(WorkspaceSnapshot.CurrentSchemaVersion, loaded.SchemaVersion);
+        Assert.Null(loaded.IconKey);
+    }
+
+    [Fact]
+    public async Task WorkspaceScopedSessions_DoNotOverwriteEachOther()
+    {
+        var workStore = new JsonWorkspaceStore(_sandbox, "work");
+        var testStore = new JsonWorkspaceStore(_sandbox, "test");
+        await workStore.SaveSessionAsync(
+            CreateSnapshot("work-session", @"D:\work"));
+        await testStore.SaveSessionAsync(
+            CreateSnapshot("test-session", @"D:\test"));
+
+        var work = await workStore.LoadSessionAsync();
+        var test = await testStore.LoadSessionAsync();
+
+        Assert.Equal("work-session", work?.Name);
+        Assert.Equal("test-session", test?.Name);
+        Assert.Equal(@"D:\work", work?.Panes[0].Tabs[0].CurrentPath);
+        Assert.Equal(@"D:\test", test?.Panes[0].Tabs[0].CurrentPath);
     }
 
     [Fact]

@@ -66,6 +66,28 @@ public sealed class MainWindowSmokeTests
                     eDriveIdentity,
                     TaskbarIdentity.GetAppUserModelId(
                         @"F:\temp\mytc\MYTC.exe"));
+                Assert.NotEqual(
+                    TaskbarIdentity.GetAppUserModelId(
+                        @"E:\port\MYTC\MYTC.exe",
+                        "work"),
+                    TaskbarIdentity.GetAppUserModelId(
+                        @"E:\port\MYTC\MYTC.exe",
+                        "test"));
+                Assert.Contains(
+                    "--workspace \"work\"",
+                    TaskbarIdentity.BuildRelaunchCommand(
+                        @"E:\port\MYTC\MYTC.exe",
+                        "work"));
+                Assert.Equal(
+                    "1",
+                    WorkspaceIconCatalog.ResolveBadge("1-test", null));
+                Assert.Equal(
+                    "W",
+                    WorkspaceIconCatalog.ResolveBadge("work", null));
+                Assert.Null(
+                    WorkspaceIconCatalog.ResolveBadge("work", "TC"));
+                Assert.NotNull(
+                    WorkspaceIconCatalog.CreateImage("work", null));
                 var shortcutStore = new JsonShortcutStore(dataRoot);
                 var contextMenuStore = new JsonContextMenuStore(dataRoot);
                 var tabContextMenuStore =
@@ -742,6 +764,12 @@ public sealed class MainWindowSmokeTests
                         Assert.Contains(
                             contextMenuDialog.Rows,
                             row => row.Action ==
+                                ContextMenuAction
+                                    .ExtractToNamedDirectoryWithWinRar &&
+                                row.Label.Contains("&R", StringComparison.Ordinal));
+                        Assert.Contains(
+                            contextMenuDialog.Rows,
+                            row => row.Action ==
                                 ContextMenuAction.UndoDelete);
                         SaveWindowPreview(
                             contextMenuDialog,
@@ -785,6 +813,29 @@ public sealed class MainWindowSmokeTests
                             repositoryRoot,
                             "global-settings-smoke.png");
                         globalSettingsDialog.Hide();
+
+                        var workspaceManagerDialog =
+                            new WorkspaceManagerDialog(
+                                ["work", "1-test"],
+                                "work",
+                                new Dictionary<string, string?>
+                                {
+                                    ["work"] = null,
+                                    ["1-test"] = "1",
+                                })
+                            {
+                                Owner = window,
+                            };
+                        workspaceManagerDialog.Show();
+                        workspaceManagerDialog.UpdateLayout();
+                        Assert.Equal(
+                            WorkspaceIconCatalog.AutomaticKey,
+                            workspaceManagerDialog.SelectedIconKey);
+                        SaveWindowPreview(
+                            workspaceManagerDialog,
+                            repositoryRoot,
+                            "workspace-manager-smoke.png");
+                        workspaceManagerDialog.Hide();
                         TaskbarIdentity.TryClearWindowProperties(window);
                         viewModel.Dispose();
                         window.Hide();
@@ -952,6 +1003,15 @@ public sealed class MainWindowSmokeTests
         public Task ExtractToDirectoryAsync(
             string archivePath,
             string destinationDirectory,
+            string? executablePath,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task ExtractToNamedDirectoryAsync(
+            string archivePath,
+            string destinationParentDirectory,
             string? executablePath,
             CancellationToken cancellationToken = default)
         {

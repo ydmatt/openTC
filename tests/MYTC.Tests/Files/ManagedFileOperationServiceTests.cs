@@ -167,6 +167,18 @@ public sealed class ManagedFileOperationServiceTests : IDisposable
             directory + Path.DirectorySeparatorChar,
             arguments[5]);
         Assert.False(captured.UseShellExecute);
+
+        captured = null;
+        await service.ExtractToNamedDirectoryAsync(
+            archive,
+            directory,
+            winRar);
+        var namedArguments = Assert.IsType<ProcessStartInfo>(captured)
+            .ArgumentList;
+        Assert.Equal(
+            Path.Combine(directory, "assets") +
+                Path.DirectorySeparatorChar,
+            namedArguments[5]);
     }
 
     [Fact]

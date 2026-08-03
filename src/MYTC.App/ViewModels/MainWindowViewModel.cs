@@ -23,6 +23,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private string _statusMessage = "正在恢复上次会话…";
     private FilePaneViewModel? _maximizedPane;
     private string? _selectedWorkspaceName;
+    private string? _activeWorkspaceIconKey;
     private double _horizontalRatio = 0.5;
     private double _verticalRatio = 0.5;
     private bool _isInitialized;
@@ -74,6 +75,12 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     {
         get => _selectedWorkspaceName;
         set => SetProperty(ref _selectedWorkspaceName, value);
+    }
+
+    public string? ActiveWorkspaceIconKey
+    {
+        get => _activeWorkspaceIconKey;
+        private set => SetProperty(ref _activeWorkspaceIconKey, value);
     }
 
     public double HorizontalRatio
@@ -290,6 +297,43 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         StatusMessage = $"工作区“{source}”已重命名为“{target}”";
+    }
+
+    public async Task<IReadOnlyDictionary<string, string?>>
+        GetWorkspaceIconAssignmentsAsync()
+    {
+        var result = new Dictionary<string, string?>(
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var name in WorkspaceNames)
+        {
+            var snapshot = await _workspaceStore.LoadWorkspaceAsync(name);
+            result[name] = snapshot?.IconKey;
+        }
+
+        return result;
+    }
+
+    public async Task SetWorkspaceIconKeyAsync(
+        string workspaceName,
+        string? iconKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workspaceName);
+        var name = workspaceName.Trim();
+        var snapshot = await _workspaceStore.LoadWorkspaceAsync(name)
+            ?? throw new FileNotFoundException(
+                $"找不到工作区“{name}”。");
+        await _workspaceStore.SaveWorkspaceAsync(
+            name,
+            snapshot with { IconKey = iconKey });
+        if (StringComparer.OrdinalIgnoreCase.Equals(
+                SelectedWorkspaceName,
+                name))
+        {
+            ActiveWorkspaceIconKey = iconKey;
+            WorkspaceActivated?.Invoke(name);
+        }
+
+        StatusMessage = $"工作区“{name}”的任务栏图标已更新。";
     }
 
     public Task ExportWorkspaceAsync(string name, string destinationPath)
@@ -536,6 +580,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     private async Task ApplyWorkspaceAsync(WorkspaceSnapshot snapshot)
     {
+        ActiveWorkspaceIconKey = snapshot.IconKey;
         foreach (var pane in Panes)
         {
             pane.Dispose();
@@ -603,7 +648,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             Panes.Select(pane => pane.Capture()).ToArray(),
             _focusState.ActivePaneId,
             _focusState.TargetPaneId,
-            DateTime.UtcNow);
+            DateTime.UtcNow,
+            ActiveWorkspaceIconKey);
     }
 
     private WorkspaceSnapshot CreateDefaultWorkspace()

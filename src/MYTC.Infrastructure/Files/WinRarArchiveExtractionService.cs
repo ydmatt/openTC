@@ -44,6 +44,47 @@ public sealed class WinRarArchiveExtractionService : IArchiveExtractionService
         string? executablePath,
         CancellationToken cancellationToken = default)
     {
+        await ExtractCoreAsync(
+            archivePath,
+            destinationDirectory,
+            executablePath,
+            requireExistingDestination: true,
+            cancellationToken);
+    }
+
+    public async Task ExtractToNamedDirectoryAsync(
+        string archivePath,
+        string destinationParentDirectory,
+        string? executablePath,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(archivePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationParentDirectory);
+        var fullArchivePath = Path.GetFullPath(archivePath);
+        var parent = Path.GetFullPath(destinationParentDirectory);
+        if (!Directory.Exists(parent))
+        {
+            throw new DirectoryNotFoundException(
+                "解压目标的父目录不存在。");
+        }
+
+        await ExtractCoreAsync(
+            fullArchivePath,
+            Path.Combine(
+                parent,
+                Path.GetFileNameWithoutExtension(fullArchivePath)),
+            executablePath,
+            requireExistingDestination: false,
+            cancellationToken);
+    }
+
+    private async Task ExtractCoreAsync(
+        string archivePath,
+        string destinationDirectory,
+        string? executablePath,
+        bool requireExistingDestination,
+        CancellationToken cancellationToken)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(archivePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationDirectory);
 
@@ -54,7 +95,8 @@ public sealed class WinRarArchiveExtractionService : IArchiveExtractionService
             throw new FileNotFoundException("找不到要解压的压缩包。", fullArchivePath);
         }
 
-        if (!Directory.Exists(fullDestinationDirectory))
+        if (requireExistingDestination &&
+            !Directory.Exists(fullDestinationDirectory))
         {
             throw new DirectoryNotFoundException("解压目标目录不存在。");
         }

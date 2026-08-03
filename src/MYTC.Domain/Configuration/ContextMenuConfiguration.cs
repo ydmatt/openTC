@@ -4,7 +4,7 @@ public sealed record ContextMenuConfiguration(
     int SchemaVersion,
     IReadOnlyList<ContextMenuItemDefinition> Items)
 {
-    public const int CurrentSchemaVersion = 8;
+    public const int CurrentSchemaVersion = 9;
 }
 
 public sealed record ContextMenuItemDefinition(
@@ -44,4 +44,5 @@ public enum ContextMenuAction
     PermanentDelete,
     Refresh,
     ExtractHereWithWinRar,
+    ExtractToNamedDirectoryWithWinRar,
 }

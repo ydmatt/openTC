@@ -19,13 +19,20 @@ public partial class App
 
     protected override async void OnStartup(StartupEventArgs e)
     {
-        _ = TaskbarIdentity.TryInitializeProcessIdentity();
         base.OnStartup(e);
 
         var dataRoot = ResolveDataRoot(e.Args);
         var launchRequest = LaunchRequest.Parse(e.Args);
+        var uiPreferencesStore = new JsonUiPreferencesStore(dataRoot);
+        var startupPreferences = await uiPreferencesStore.LoadAsync();
+        var instanceWorkspaceName = launchRequest.WorkspaceName ??
+            startupPreferences.LastWorkspaceName;
+        _ = TaskbarIdentity.TryInitializeProcessIdentity(
+            instanceWorkspaceName);
         var completedUpdateVersion = GetArgumentValue(e.Args, "--update-complete");
-        _singleInstance = new SingleInstanceCoordinator(dataRoot);
+        _singleInstance = new SingleInstanceCoordinator(
+            dataRoot,
+            instanceWorkspaceName);
         if (!_singleInstance.IsPrimary)
         {
             var delivered = await _singleInstance.SendAsync(
@@ -64,7 +71,6 @@ public partial class App
         var shortcutStore = new JsonShortcutStore(dataRoot);
         var contextMenuStore = new JsonContextMenuStore(dataRoot);
         var tabContextMenuStore = new JsonTabContextMenuStore(dataRoot);
-        var uiPreferencesStore = new JsonUiPreferencesStore(dataRoot);
         var autoStartService = new WindowsAutoStartService();
         var shortcutCreationService = new ShellShortcutCreationService();
         var openWithService = new ShellOpenWithService();
@@ -77,7 +83,7 @@ public partial class App
             driveService,
             new ShellFileLauncher(),
             new ManagedFileOperationService(),
-            new JsonWorkspaceStore(dataRoot));
+            new JsonWorkspaceStore(dataRoot, instanceWorkspaceName));
 
         var window = new MainWindow(
             shortcutStore,
@@ -95,7 +101,9 @@ public partial class App
             DataContext = viewModel,
         };
         window.SourceInitialized += (_, _) =>
-            _ = TaskbarIdentity.TryApplyWindowProperties(window);
+            window.ApplyWorkspaceAppearance(
+                instanceWorkspaceName,
+                configuredIconKey: null);
         window.Closing += (_, args) =>
         {
             if (!args.Cancel)
@@ -115,6 +123,9 @@ public partial class App
 
         await viewModel.InitializeAsync(
             launchRequest.WorkspaceName ?? window.PreferredWorkspaceName);
+        window.ApplyWorkspaceAppearance(
+            viewModel.SelectedWorkspaceName,
+            viewModel.ActiveWorkspaceIconKey);
         _mainWindowReady = true;
         _showUpdateCompletionNoticeWhenReady?.Invoke();
         _showUpdateCompletionNoticeWhenReady = null;

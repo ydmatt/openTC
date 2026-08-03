@@ -26,6 +26,7 @@ New-Item `
     Out-Null
 
 $primary = $null
+$workspaceInstance = $null
 try {
     $primary = Start-Process `
         -FilePath $executable `
@@ -70,6 +71,34 @@ try {
         throw "Secondary exited with code $($secondary.ExitCode)."
     }
 
+    $workspaceInstance = Start-Process `
+        -FilePath $executable `
+        -ArgumentList @(
+            "--data-dir",
+            $dataRoot,
+            "--skip-initial-setup",
+            "--workspace",
+            "work") `
+        -PassThru
+    $workspaceDeadline = (Get-Date).AddSeconds(25)
+    do {
+        Start-Sleep -Milliseconds 250
+        $workspaceInstance.Refresh()
+    } while (
+        $workspaceInstance.MainWindowHandle -eq 0 -and
+        -not $workspaceInstance.HasExited -and
+        (Get-Date) -lt $workspaceDeadline)
+
+    if ($workspaceInstance.HasExited -or
+        $workspaceInstance.MainWindowHandle -eq 0) {
+        throw "Distinct workspace instance did not stay open."
+    }
+
+    if (-not $workspaceInstance.CloseMainWindow() -or
+        -not $workspaceInstance.WaitForExit(20000)) {
+        throw "Distinct workspace instance did not close gracefully."
+    }
+
     Start-Sleep -Seconds 2
     if (-not $primary.CloseMainWindow()) {
         throw "Could not request a graceful primary close."
@@ -107,9 +136,16 @@ try {
         SecondaryExitCode = $secondary.ExitCode
         ForwardedPath = $activeTab.currentPath
         SessionSaved = $true
+        DistinctWorkspaceInstance = $true
     }
 }
 finally {
+    if ($null -ne $workspaceInstance -and
+        -not $workspaceInstance.HasExited) {
+        $workspaceInstance.CloseMainWindow() | Out-Null
+        $workspaceInstance.WaitForExit(5000) | Out-Null
+    }
+
     if ($null -ne $primary -and -not $primary.HasExited) {
         $primary.CloseMainWindow() | Out-Null
         $primary.WaitForExit(5000) | Out-Null

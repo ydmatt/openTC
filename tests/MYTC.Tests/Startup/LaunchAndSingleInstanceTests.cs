@@ -78,6 +78,19 @@ public sealed class LaunchAndSingleInstanceTests : IDisposable
         Assert.Equal(expected, actual);
     }
 
+    [Fact]
+    public void DifferentWorkspaceScopes_CanBothBecomePrimary()
+    {
+        using var work = new SingleInstanceCoordinator(_sandbox, "work");
+        using var test = new SingleInstanceCoordinator(_sandbox, "test");
+
+        Assert.True(work.IsPrimary);
+        Assert.True(test.IsPrimary);
+        Assert.NotEqual(
+            SingleInstanceCoordinator.NormalizeWorkspaceScope("work"),
+            SingleInstanceCoordinator.NormalizeWorkspaceScope("test"));
+    }
+
     public void Dispose()
     {
         var tempRoot = Path.GetFullPath(Path.GetTempPath());

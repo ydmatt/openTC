@@ -14,6 +14,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <TextBlock Foreground="{StaticResource MutedTextBrush}"
@@ -24,9 +25,29 @@
                  Margin="0,12,0,12"
                  DisplayMemberPath="."
                  ItemsSource="{Binding WorkspaceNames}"
-                 SelectedItem="{Binding SelectedWorkspaceName, Mode=TwoWay}" />
+                 SelectedItem="{Binding SelectedWorkspaceName, Mode=TwoWay}"
+                 SelectionChanged="OnWorkspaceSelectionChanged" />
 
-        <Grid Grid.Row="2">
+        <StackPanel Grid.Row="2"
+                    Margin="0,0,0,12"
+                    Orientation="Horizontal">
+            <TextBlock VerticalAlignment="Center"
+                       Text="任务栏图标：" />
+            <ComboBox x:Name="WorkspaceIconComboBox"
+                      Width="210"
+                      SelectedValuePath="Tag">
+                <ComboBoxItem Tag="AUTO" Content="自动（按工作区首字母）" />
+                <ComboBoxItem Tag="TC" Content="默认 TC 图标" />
+                <ComboBoxItem Tag="1" Content="TC + 上标 1" />
+                <ComboBoxItem Tag="W" Content="TC + 上标 W" />
+            </ComboBox>
+            <Button Width="86"
+                    Margin="8,0,0,0"
+                    Click="OnApplyIconClick"
+                    Content="应用图标" />
+        </StackPanel>
+
+        <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />

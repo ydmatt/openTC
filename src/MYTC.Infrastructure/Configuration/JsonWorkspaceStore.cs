@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Security.Cryptography;
+using System.Text;
 using MYTC.Application.Abstractions;
 using MYTC.Domain.Workspaces;
 
@@ -9,6 +11,8 @@ public sealed class JsonWorkspaceStore : IWorkspaceStore
 {
     private readonly string _dataRoot;
     private readonly string _workspaceRoot;
+    private readonly string _sessionPath;
+    private readonly string _legacySessionPath;
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         WriteIndented = true,
@@ -16,19 +20,24 @@ public sealed class JsonWorkspaceStore : IWorkspaceStore
         Converters = { new JsonStringEnumConverter() },
     };
 
-    public JsonWorkspaceStore(string dataRoot)
+    public JsonWorkspaceStore(
+        string dataRoot,
+        string? sessionScope = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dataRoot);
         _dataRoot = Path.GetFullPath(dataRoot);
         _workspaceRoot = Path.Combine(_dataRoot, "workspaces");
+        _legacySessionPath = Path.Combine(_dataRoot, "session.json");
+        _sessionPath = GetSessionPath(sessionScope);
     }
 
-    public Task<WorkspaceSnapshot?> LoadSessionAsync(
+    public async Task<WorkspaceSnapshot?> LoadSessionAsync(
         CancellationToken cancellationToken = default)
     {
-        return LoadAsync(
-            Path.Combine(_dataRoot, "session.json"),
-            cancellationToken);
+        var scoped = await LoadAsync(_sessionPath, cancellationToken);
+        return scoped ?? (_sessionPath == _legacySessionPath
+            ? null
+            : await LoadAsync(_legacySessionPath, cancellationToken));
     }
 
     public Task SaveSessionAsync(
@@ -36,8 +45,11 @@ public sealed class JsonWorkspaceStore : IWorkspaceStore
         CancellationToken cancellationToken = default)
     {
         return SaveAtomicAsync(
-            Path.Combine(_dataRoot, "session.json"),
-            snapshot,
+            _sessionPath,
+            snapshot with
+            {
+                SchemaVersion = WorkspaceSnapshot.CurrentSchemaVersion,
+            },
             cancellationToken);
     }
 
@@ -76,7 +88,11 @@ public sealed class JsonWorkspaceStore : IWorkspaceStore
     {
         return SaveAtomicAsync(
             GetWorkspacePath(name),
-            snapshot with { Name = name },
+            snapshot with
+            {
+                SchemaVersion = WorkspaceSnapshot.CurrentSchemaVersion,
+                Name = name,
+            },
             cancellationToken);
     }
 
@@ -224,7 +240,10 @@ public sealed class JsonWorkspaceStore : IWorkspaceStore
                 return null;
             }
 
-            return snapshot;
+            return snapshot with
+            {
+                SchemaVersion = WorkspaceSnapshot.CurrentSchemaVersion,
+            };
         }
         catch (JsonException)
         {
@@ -237,10 +256,17 @@ public sealed class JsonWorkspaceStore : IWorkspaceStore
             try
             {
                 await using var backupStream = File.OpenRead(backupPath);
-                return await JsonSerializer.DeserializeAsync<WorkspaceSnapshot>(
+                var backup = await JsonSerializer.DeserializeAsync<WorkspaceSnapshot>(
                     backupStream,
                     _jsonOptions,
                     cancellationToken);
+                return backup is null ||
+                    backup.SchemaVersion > WorkspaceSnapshot.CurrentSchemaVersion
+                    ? null
+                    : backup with
+                    {
+                        SchemaVersion = WorkspaceSnapshot.CurrentSchemaVersion,
+                    };
             }
             catch (JsonException)
             {
@@ -263,7 +289,10 @@ public sealed class JsonWorkspaceStore : IWorkspaceStore
             return snapshot is null ||
                 snapshot.SchemaVersion > WorkspaceSnapshot.CurrentSchemaVersion
                 ? null
-                : snapshot;
+                : snapshot with
+                {
+                    SchemaVersion = WorkspaceSnapshot.CurrentSchemaVersion,
+                };
         }
         catch (JsonException)
         {
@@ -334,6 +363,24 @@ public sealed class JsonWorkspaceStore : IWorkspaceStore
         }
 
         return Path.Combine(_workspaceRoot, sanitized + ".json");
+    }
+
+    private string GetSessionPath(string? sessionScope)
+    {
+        if (string.IsNullOrWhiteSpace(sessionScope))
+        {
+            return _legacySessionPath;
+        }
+
+        var normalized = sessionScope.Trim();
+        var safeName = SanitizeWorkspaceName(normalized);
+        var hash = Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(
+                normalized.ToUpperInvariant())))[..8];
+        return Path.Combine(
+            _dataRoot,
+            "sessions",
+            $"{safeName}-{hash}.json");
     }
 
     private string GetAvailableWorkspaceName(string preferredName)

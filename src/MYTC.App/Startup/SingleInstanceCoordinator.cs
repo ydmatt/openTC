@@ -15,14 +15,17 @@ public sealed class SingleInstanceCoordinator : IDisposable
     private Task? _serverTask;
     private bool _disposed;
 
-    public SingleInstanceCoordinator(string instanceScope)
+    public SingleInstanceCoordinator(
+        string dataRoot,
+        string? workspaceName = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(instanceScope);
+        ArgumentException.ThrowIfNullOrWhiteSpace(dataRoot);
         var identity = string.Join(
             "|",
             Environment.UserDomainName,
             Environment.UserName,
-            Path.GetFullPath(instanceScope).ToUpperInvariant());
+            Path.GetFullPath(dataRoot).ToUpperInvariant(),
+            NormalizeWorkspaceScope(workspaceName));
         var suffix = Convert.ToHexString(
             SHA256.HashData(Encoding.UTF8.GetBytes(identity)))[..24];
         _pipeName = $"MYTC.SingleInstance.{suffix}";
@@ -41,6 +44,13 @@ public sealed class SingleInstanceCoordinator : IDisposable
     public bool IsPrimary { get; }
 
     public event Action<LaunchRequest>? RequestReceived;
+
+    public static string NormalizeWorkspaceScope(string? workspaceName)
+    {
+        return string.IsNullOrWhiteSpace(workspaceName)
+            ? "<DEFAULT>"
+            : workspaceName.Trim().ToUpperInvariant();
+    }
 
     public void StartListening()
     {

@@ -323,6 +323,11 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
             loaded.Items,
             item => item.Action == ContextMenuAction.ExtractHereWithWinRar &&
                 item.Label.Contains("&X", StringComparison.Ordinal));
+        Assert.Contains(
+            loaded.Items,
+            item => item.Action ==
+                ContextMenuAction.ExtractToNamedDirectoryWithWinRar &&
+                item.Label.Contains("&R", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -400,6 +405,11 @@ public sealed class ShortcutAndContextMenuTests : IDisposable
             loaded.Items,
             item => item.Action == ContextMenuAction.ExtractHereWithWinRar &&
                 item.Label.Contains("&X", StringComparison.Ordinal));
+        Assert.Contains(
+            loaded.Items,
+            item => item.Action ==
+                ContextMenuAction.ExtractToNamedDirectoryWithWinRar &&
+                item.Label.Contains("&R", StringComparison.Ordinal));
     }
 
     [Fact]

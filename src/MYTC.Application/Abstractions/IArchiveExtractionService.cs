@@ -14,4 +14,10 @@ public interface IArchiveExtractionService
         string destinationDirectory,
         string? executablePath,
         CancellationToken cancellationToken = default);
+
+    Task ExtractToNamedDirectoryAsync(
+        string archivePath,
+        string destinationParentDirectory,
+        string? executablePath,
+        CancellationToken cancellationToken = default);
 }

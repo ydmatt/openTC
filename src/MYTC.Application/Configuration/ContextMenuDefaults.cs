@@ -15,6 +15,10 @@ public static class ContextMenuDefaults
                     "winrar-extract-here",
                     "WinRAR：解压到当前文件夹（&X）",
                     ContextMenuAction.ExtractHereWithWinRar),
+                BuiltIn(
+                    "winrar-extract-named",
+                    "WinRAR：解压到同名文件夹（&R）",
+                    ContextMenuAction.ExtractToNamedDirectoryWithWinRar),
                 Submenu("new-submenu", "新建（&W）"),
                 BuiltIn(
                     "create-directory",

@@ -102,6 +102,19 @@ public partial class MainWindow
 
     private MainWindowViewModel? ViewModel => DataContext as MainWindowViewModel;
 
+    public void ApplyWorkspaceAppearance(
+        string? workspaceName,
+        string? configuredIconKey)
+    {
+        Icon = WorkspaceIconCatalog.CreateImage(
+            workspaceName,
+            configuredIconKey);
+        Title = string.IsNullOrWhiteSpace(workspaceName)
+            ? "MYTC"
+            : $"MYTC - {workspaceName}";
+        _ = TaskbarIdentity.TryApplyWindowProperties(this, workspaceName);
+    }
+
     public string? PreferredWorkspaceName => _uiPreferences.LastWorkspaceName;
 
     public async Task ConfirmWinRarExecutableAsync()
@@ -685,7 +698,8 @@ public partial class MainWindow
                 },
                 ],
             ContextMenuAction.Properties => pane.SelectedItems.Count == 1,
-            ContextMenuAction.ExtractHereWithWinRar =>
+            ContextMenuAction.ExtractHereWithWinRar or
+                ContextMenuAction.ExtractToNamedDirectoryWithWinRar =>
                 pane.SelectedItems is
                 [
                 {
@@ -746,6 +760,9 @@ public partial class MainWindow
             case ContextMenuAction.ExtractHereWithWinRar:
                 await ExtractArchiveHereAsync(pane);
                 break;
+            case ContextMenuAction.ExtractToNamedDirectoryWithWinRar:
+                await ExtractArchiveToNamedDirectoryAsync(pane);
+                break;
             case ContextMenuAction.CopyToTarget:
                 await TransferToTargetAsync(FileOperationKind.Copy);
                 break;
@@ -803,6 +820,23 @@ public partial class MainWindow
             _uiPreferences.WinRarExecutablePath);
         await pane.RefreshCurrentAsync();
         ViewModel?.SetStatusMessage($"已解压：{archive.Name}");
+    }
+
+    private async Task ExtractArchiveToNamedDirectoryAsync(
+        FilePaneViewModel pane)
+    {
+        if (pane.SelectedItems is not [var archive] ||
+            archive.Kind != EntryKind.File)
+        {
+            return;
+        }
+
+        await _archiveExtractionService.ExtractToNamedDirectoryAsync(
+            archive.FullPath,
+            pane.CurrentPath,
+            _uiPreferences.WinRarExecutablePath);
+        await pane.RefreshCurrentAsync();
+        ViewModel?.SetStatusMessage($"已解压到同名文件夹：{archive.Name}");
     }
 
     public void PopulateTabContextMenu(
@@ -2089,16 +2123,29 @@ public partial class MainWindow
         }
     }
 
-    private void OnManageWorkspacesClick(object sender, RoutedEventArgs e)
+    private async void OnManageWorkspacesClick(object sender, RoutedEventArgs e)
     {
         if (ViewModel is null)
         {
             return;
         }
 
+        IReadOnlyDictionary<string, string?> iconAssignments;
+        try
+        {
+            iconAssignments =
+                await ViewModel.GetWorkspaceIconAssignmentsAsync();
+        }
+        catch (Exception exception)
+        {
+            ShowOperationError("读取工作区图标设置失败", exception);
+            return;
+        }
+
         var dialog = new WorkspaceManagerDialog(
             ViewModel.WorkspaceNames,
-            ViewModel.SelectedWorkspaceName)
+            ViewModel.SelectedWorkspaceName,
+            iconAssignments)
         {
             Owner = this,
         };
@@ -2106,6 +2153,7 @@ public partial class MainWindow
         dialog.ExportRequested += OnWorkspaceExportRequested;
         dialog.RenameRequested += OnWorkspaceRenameRequested;
         dialog.DeleteRequested += OnWorkspaceDeleteRequested;
+        dialog.IconChangedRequested += OnWorkspaceIconChangedRequested;
         _ = dialog.ShowDialog();
     }
 
@@ -2152,7 +2200,7 @@ public partial class MainWindow
         {
             var importedName = await ViewModel.ImportWorkspaceAsync(
                 picker.FileName);
-            RefreshWorkspaceManager(dialog);
+            await RefreshWorkspaceManagerAsync(dialog);
             MessageBox.Show(
                 this,
                 $"已导入工作区“{importedName}”。",
@@ -2230,7 +2278,7 @@ public partial class MainWindow
         try
         {
             await ViewModel.DeleteWorkspaceAsync(e.WorkspaceName);
-            RefreshWorkspaceManager(dialog);
+            await RefreshWorkspaceManagerAsync(dialog);
         }
         catch (Exception exception)
         {
@@ -2267,7 +2315,7 @@ public partial class MainWindow
             await ViewModel.RenameWorkspaceAsync(
                 e.WorkspaceName,
                 nameDialog.WorkspaceName);
-            RefreshWorkspaceManager(dialog);
+            await RefreshWorkspaceManagerAsync(dialog);
         }
         catch (Exception exception)
         {
@@ -2275,13 +2323,39 @@ public partial class MainWindow
         }
     }
 
-    private static void RefreshWorkspaceManager(WorkspaceManagerDialog dialog)
+    private async void OnWorkspaceIconChangedRequested(
+        object? sender,
+        WorkspaceIconSelectionEventArgs e)
+    {
+        if (sender is not WorkspaceManagerDialog dialog || ViewModel is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await ViewModel.SetWorkspaceIconKeyAsync(
+                e.WorkspaceName,
+                e.IconKey);
+            await RefreshWorkspaceManagerAsync(dialog);
+        }
+        catch (Exception exception)
+        {
+            ShowOperationError("保存工作区图标失败", exception);
+        }
+    }
+
+    private static async Task RefreshWorkspaceManagerAsync(
+        WorkspaceManagerDialog dialog)
     {
         if (dialog.Owner is MainWindow window && window.ViewModel is not null)
         {
+            var iconAssignments = await window.ViewModel
+                .GetWorkspaceIconAssignmentsAsync();
             dialog.ReplaceWorkspaceNames(
                 window.ViewModel.WorkspaceNames,
-                window.ViewModel.SelectedWorkspaceName);
+                window.ViewModel.SelectedWorkspaceName,
+                iconAssignments);
         }
     }
 
@@ -2330,6 +2404,9 @@ public partial class MainWindow
 
     private async void OnWorkspaceActivated(string? workspaceName)
     {
+        ApplyWorkspaceAppearance(
+            workspaceName,
+            ViewModel?.ActiveWorkspaceIconKey);
         var previous = _uiPreferences;
         try
         {

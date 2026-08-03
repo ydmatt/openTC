@@ -10,9 +10,10 @@ public sealed record WorkspaceSnapshot(
     IReadOnlyList<PaneSnapshot> Panes,
     string ActivePaneId,
     string TargetPaneId,
-    DateTime UpdatedAtUtc)
+    DateTime UpdatedAtUtc,
+    string? IconKey = null)
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 }
 
 public sealed record PaneSnapshot(

@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Windows;
 using System.Windows.Interop;
+using MYTC.App.Startup;
 
 namespace MYTC.App.Windows;
 
@@ -26,12 +27,12 @@ public static class TaskbarIdentity
     private static readonly PropertyKey RelaunchIconKey =
         new(AppUserModelPropertySet, 3);
 
-    public static bool TryInitializeProcessIdentity()
+    public static bool TryInitializeProcessIdentity(string? workspaceName = null)
     {
         try
         {
             return SetCurrentProcessExplicitAppUserModelID(
-                GetAppUserModelId()) >= 0;
+                GetAppUserModelId(workspaceName: workspaceName)) >= 0;
         }
         catch (DllNotFoundException)
         {
@@ -43,7 +44,9 @@ public static class TaskbarIdentity
         }
     }
 
-    public static bool TryApplyWindowProperties(Window window)
+    public static bool TryApplyWindowProperties(
+        Window window,
+        string? workspaceName = null)
     {
         ArgumentNullException.ThrowIfNull(window);
         var handle = new WindowInteropHelper(window).Handle;
@@ -61,7 +64,9 @@ public static class TaskbarIdentity
 
         try
         {
-            var appUserModelId = GetAppUserModelId(executablePath);
+            var appUserModelId = GetAppUserModelId(
+                executablePath,
+                workspaceName);
             return TrySetString(
                     propertyStore,
                     AppUserModelIdKey,
@@ -69,7 +74,7 @@ public static class TaskbarIdentity
                 TrySetString(
                     propertyStore,
                     RelaunchCommandKey,
-                    $"\"{executablePath}\"") &&
+                    BuildRelaunchCommand(executablePath, workspaceName)) &&
                 TrySetString(
                     propertyStore,
                     RelaunchDisplayNameKey,
@@ -112,7 +117,9 @@ public static class TaskbarIdentity
         }
     }
 
-    public static string GetAppUserModelId(string? executablePath = null)
+    public static string GetAppUserModelId(
+        string? executablePath = null,
+        string? workspaceName = null)
     {
         var path = executablePath;
         if (string.IsNullOrWhiteSpace(path))
@@ -131,8 +138,22 @@ public static class TaskbarIdentity
             path = AppContext.BaseDirectory.ToUpperInvariant();
         }
 
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(path));
+        var identity = string.Join(
+            "|",
+            path,
+            SingleInstanceCoordinator.NormalizeWorkspaceScope(workspaceName));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(identity));
         return $"{AppUserModelIdPrefix}.{Convert.ToHexString(hash, 0, 8)}";
+    }
+
+    public static string BuildRelaunchCommand(
+        string executablePath,
+        string? workspaceName)
+    {
+        var command = $"\"{executablePath}\"";
+        return string.IsNullOrWhiteSpace(workspaceName)
+            ? command
+            : $"{command} --workspace \"{workspaceName.Trim()}\"";
     }
 
     private static bool TryGetPropertyStore(

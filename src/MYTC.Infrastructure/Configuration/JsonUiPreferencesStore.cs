@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using MYTC.Application.Abstractions;
 using MYTC.Domain.Configuration;
@@ -99,13 +101,53 @@ public sealed class JsonUiPreferencesStore(string dataRoot) : IUiPreferencesStor
                 await stream.FlushAsync(cancellationToken);
             }
 
-            File.Move(temporaryPath, _path, overwrite: true);
+            await Task.Run(
+                () => MoveIntoPlaceWithProcessLock(temporaryPath, _path),
+                cancellationToken);
         }
         finally
         {
             if (File.Exists(temporaryPath))
             {
                 File.Delete(temporaryPath);
+            }
+        }
+    }
+
+    private static void MoveIntoPlaceWithProcessLock(
+        string temporaryPath,
+        string destinationPath)
+    {
+        var normalizedPath = Path.GetFullPath(destinationPath)
+            .ToUpperInvariant();
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(normalizedPath));
+        var mutexName =
+            $@"Local\MYTC.UiPreferences.{Convert.ToHexString(hash, 0, 8)}";
+        using var mutex = new Mutex(initiallyOwned: false, mutexName);
+        var lockTaken = false;
+        try
+        {
+            try
+            {
+                lockTaken = mutex.WaitOne(TimeSpan.FromSeconds(10));
+            }
+            catch (AbandonedMutexException)
+            {
+                lockTaken = true;
+            }
+
+            if (!lockTaken)
+            {
+                throw new IOException("等待界面设置写入锁超时。");
+            }
+
+            File.Move(temporaryPath, destinationPath, overwrite: true);
+        }
+        finally
+        {
+            if (lockTaken)
+            {
+                mutex.ReleaseMutex();
             }
         }
     }

@@ -97,6 +97,58 @@ public static class WorkspaceIconCatalog
         return bitmap;
     }
 
+    public static ImageSource? CreateTaskbarOverlay(
+        string? workspaceName,
+        string? configuredIconKey)
+    {
+        var badge = ResolveBadge(workspaceName, configuredIconKey);
+        if (badge is null)
+        {
+            return null;
+        }
+
+        const double size = 64;
+        var visual = new DrawingVisual();
+        using (var drawing = visual.RenderOpen())
+        {
+            var badgeRect = new Rect(2, 2, 60, 60);
+            drawing.DrawRoundedRectangle(
+                new SolidColorBrush(Color.FromRgb(255, 139, 0)),
+                new Pen(Brushes.White, 4),
+                badgeRect,
+                15,
+                15);
+
+            var text = new FormattedText(
+                badge,
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                new Typeface(
+                    new FontFamily("Segoe UI"),
+                    FontStyles.Normal,
+                    FontWeights.Black,
+                    FontStretches.Normal),
+                42,
+                Brushes.White,
+                1.0);
+            drawing.DrawText(
+                text,
+                new Point(
+                    (size - text.Width) / 2,
+                    (size - text.Height) / 2 - 2));
+        }
+
+        var bitmap = new RenderTargetBitmap(
+            (int)size,
+            (int)size,
+            96,
+            96,
+            PixelFormats.Pbgra32);
+        bitmap.Render(visual);
+        bitmap.Freeze();
+        return bitmap;
+    }
+
     private static BitmapFrame LoadBaseImage()
     {
         var resource = System.Windows.Application.GetResourceStream(

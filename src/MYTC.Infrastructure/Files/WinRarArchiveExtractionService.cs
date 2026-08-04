@@ -112,6 +112,8 @@ public sealed class WinRarArchiveExtractionService : IArchiveExtractionService
             throw new InvalidOperationException("未检测到可用的 WinRAR。请先安装 WinRAR。");
         }
 
+        Directory.CreateDirectory(fullDestinationDirectory);
+
         var startInfo = new ProcessStartInfo
         {
             FileName = executable,

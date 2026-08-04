@@ -109,6 +109,10 @@ public partial class MainWindow
         Icon = WorkspaceIconCatalog.CreateImage(
             workspaceName,
             configuredIconKey);
+        TaskbarItemInfo ??= new System.Windows.Shell.TaskbarItemInfo();
+        TaskbarItemInfo.Overlay = WorkspaceIconCatalog.CreateTaskbarOverlay(
+            workspaceName,
+            configuredIconKey);
         Title = string.IsNullOrWhiteSpace(workspaceName)
             ? "MYTC"
             : $"MYTC - {workspaceName}";

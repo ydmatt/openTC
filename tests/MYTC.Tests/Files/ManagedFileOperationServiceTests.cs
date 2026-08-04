@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO.Compression;
 using MYTC.Domain.Operations;
 using MYTC.Application.Files;
 using MYTC.Infrastructure.Files;
@@ -175,10 +176,44 @@ public sealed class ManagedFileOperationServiceTests : IDisposable
             winRar);
         var namedArguments = Assert.IsType<ProcessStartInfo>(captured)
             .ArgumentList;
+        Assert.True(Directory.Exists(Path.Combine(directory, "assets")));
+        Assert.Equal(
+            Path.Combine(directory, "assets"),
+            captured!.WorkingDirectory);
         Assert.Equal(
             Path.Combine(directory, "assets") +
                 Path.DirectorySeparatorChar,
             namedArguments[5]);
+    }
+
+    [Fact]
+    public async Task WinRarExtraction_WithInstalledExecutable_CreatesNamedDirectory()
+    {
+        var winRar = Environment.GetEnvironmentVariable("MYTC_TEST_WINRAR");
+        if (string.IsNullOrWhiteSpace(winRar) || !File.Exists(winRar))
+        {
+            return;
+        }
+
+        var source = CreateDirectory("winrar-real-source");
+        await File.WriteAllTextAsync(
+            Path.Combine(source, "验证.txt"),
+            "MYTC WinRAR integration");
+        var archiveRoot = CreateDirectory("winrar-real-archive");
+        var archive = Path.Combine(archiveRoot, "真实测试.zip");
+        ZipFile.CreateFromDirectory(source, archive);
+        var destinationParent = CreateDirectory("winrar-real-output");
+
+        var service = new WinRarArchiveExtractionService();
+        await service.ExtractToNamedDirectoryAsync(
+            archive,
+            destinationParent,
+            winRar);
+
+        Assert.Equal(
+            "MYTC WinRAR integration",
+            await File.ReadAllTextAsync(
+                Path.Combine(destinationParent, "真实测试", "验证.txt")));
     }
 
     [Fact]

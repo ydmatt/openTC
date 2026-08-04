@@ -141,6 +141,14 @@ public sealed class MainWindowSmokeTests
                 Assert.NotNull(window.Icon);
                 Assert.True(
                     TaskbarIdentity.TryApplyWindowProperties(window));
+                window.ApplyWorkspaceAppearance("work", null);
+                Assert.NotNull(window.TaskbarItemInfo);
+                Assert.NotNull(window.TaskbarItemInfo.Overlay);
+                window.ApplyWorkspaceAppearance(
+                    "work",
+                    WorkspaceIconCatalog.BaseIconKey);
+                Assert.Null(window.TaskbarItemInfo.Overlay);
+                window.ApplyWorkspaceAppearance("work", null);
 
                 _ = window.Dispatcher.BeginInvoke(async () =>
                 {

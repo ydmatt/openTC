@@ -1,5 +1,13 @@
 # HANDOVER
 
+## v1.0.21
+
+- 修复 WinRAR 同名目录解压启动错误：目标目录在创建后才作为 `WorkingDirectory` 使用，并新增可选的已安装 WinRAR 真实集成测试。
+- 工作区 `1` / `W` 使用 Windows 原生任务栏叠加徽标，标题栏图标与任务栏按钮均可区分；默认 TC 不显示徽标。
+- `JsonUiPreferencesStore` 的最终原子替换使用按配置路径命名的当前用户跨进程互斥，适配不同工作区多实例共享全局界面设置。
+- 全量测试 81/81 通过；发布时只向 `T:\mytc-updates` 投递升级 ZIP，不再向 T 盘复制完整 release 目录。
+- v1.0.21 发布包的单实例转发、不同工作区并行实例及外部更新器测试通过。升级 ZIP 为 `T:\mytc-updates\MYTC-v1.0.21-win-x64.zip`，SHA-256：`AA5375D0034345C8A7494932E6179CB311AFF38C87B92DFA3BD63D74CF8BA209`；T 盘未生成 v1.0.21 release 目录。
+
 ## v1.0.20
 
 - 支持以 `/work`、`/1test` 或 `--workspace name` 启动不同工作区实例；同工作区重复启动仍会激活已有窗口。不同工作区任务栏分组和会话文件彼此独立。

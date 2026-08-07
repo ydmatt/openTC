@@ -35,12 +35,10 @@
                        Text="任务栏图标：" />
             <ComboBox x:Name="WorkspaceIconComboBox"
                       Width="210"
-                      SelectedValuePath="Tag">
-                <ComboBoxItem Tag="AUTO" Content="自动（按工作区首字母）" />
-                <ComboBoxItem Tag="TC" Content="默认 TC 图标" />
-                <ComboBoxItem Tag="1" Content="TC + 上标 1" />
-                <ComboBoxItem Tag="W" Content="TC + 上标 W" />
-            </ComboBox>
+                      DisplayMemberPath="DisplayName"
+                      MaxDropDownHeight="300"
+                      ItemsSource="{Binding IconOptions}"
+                      SelectedValuePath="Key" />
             <Button Width="86"
                     Margin="8,0,0,0"
                     Click="OnApplyIconClick"

@@ -25,6 +25,9 @@ public partial class WorkspaceManagerDialog
 
     public ObservableCollection<string> WorkspaceNames { get; }
 
+    public IReadOnlyList<WorkspaceIconOption> IconOptions =>
+        WorkspaceIconCatalog.Options;
+
     public string? SelectedWorkspaceName { get; set; }
 
     public string? SelectedIconKey =>

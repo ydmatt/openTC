@@ -84,6 +84,30 @@ public sealed class MainWindowSmokeTests
                 Assert.Equal(
                     "W",
                     WorkspaceIconCatalog.ResolveBadge("work", null));
+                foreach (var badge in
+                         "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+                {
+                    Assert.Equal(
+                        badge.ToString(),
+                        WorkspaceIconCatalog.ResolveBadge(
+                            $"{badge}-workspace",
+                            null));
+                    Assert.Equal(
+                        badge.ToString(),
+                        WorkspaceIconCatalog.ResolveBadge(
+                            "ignored",
+                            badge.ToString()));
+                    var overlay = Assert.IsAssignableFrom<ImageSource>(
+                        WorkspaceIconCatalog.CreateTaskbarOverlay(
+                            "ignored",
+                            badge.ToString()));
+                    Assert.True(overlay.IsFrozen);
+                }
+                Assert.Equal(
+                    "P",
+                    WorkspaceIconCatalog.ResolveBadge("项目-project", null));
+                Assert.Null(
+                    WorkspaceIconCatalog.ResolveBadge("0-workspace", null));
                 Assert.Null(
                     WorkspaceIconCatalog.ResolveBadge("work", "TC"));
                 Assert.NotNull(
@@ -839,6 +863,10 @@ public sealed class MainWindowSmokeTests
                         Assert.Equal(
                             WorkspaceIconCatalog.AutomaticKey,
                             workspaceManagerDialog.SelectedIconKey);
+                        var workspaceIconComboBox = Assert.IsType<ComboBox>(
+                            workspaceManagerDialog.FindName(
+                                "WorkspaceIconComboBox"));
+                        Assert.Equal(37, workspaceIconComboBox.Items.Count);
                         SaveWindowPreview(
                             workspaceManagerDialog,
                             repositoryRoot,

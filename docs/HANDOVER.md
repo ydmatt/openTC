@@ -1,5 +1,13 @@
 # HANDOVER
 
+## v1.0.22
+
+- `WorkspaceIconCatalog` 现在统一提供 1–9、A–Z 共 35 个徽标及完整的 37 项 UI 选项目录；工作区管理通过绑定动态呈现。
+- 自动模式扫描工作区名称中的 ASCII 字母/数字；A–Z 大小写统一，0 不在徽标库中。旧 `1` / `W` 配置保持兼容，工作区 schema 仍为 2。
+- STA 测试验证所有自动/手动徽标和 37 项下拉列表；Release 全量测试 81/81 通过。
+- 交付继续只向 `T:\mytc-updates` 写入升级 ZIP，不向 T 盘复制完整 release 目录。
+- v1.0.22 发布包的单实例转发、不同工作区并行实例和外部更新器测试通过。升级 ZIP 为 `T:\mytc-updates\MYTC-v1.0.22-win-x64.zip`，SHA-256：`6323C6D27CF171F6FCFE3A417FA5DB39D0FEFC682DDDEF8EE1FC221EF9334425`；T 盘未生成 v1.0.22 release 目录。
+
 ## v1.0.21
 
 - 修复 WinRAR 同名目录解压启动错误：目标目录在创建后才作为 `WorkingDirectory` 使用，并新增可选的已安装 WinRAR 真实集成测试。

@@ -12,8 +12,19 @@ public static class WorkspaceIconCatalog
     public const string OneIconKey = "1";
     public const string WorkIconKey = "W";
 
+    private static readonly string[] OrderedBadgeKeys =
+        Enumerable.Range(1, 9)
+            .Select(number => number.ToString(CultureInfo.InvariantCulture))
+            .Concat(
+                Enumerable.Range('A', 26)
+                    .Select(code => ((char)code).ToString()))
+            .ToArray();
+
     private static readonly HashSet<string> BadgeKeys =
-        new([OneIconKey, WorkIconKey], StringComparer.OrdinalIgnoreCase);
+        new(OrderedBadgeKeys, StringComparer.OrdinalIgnoreCase);
+
+    public static IReadOnlyList<WorkspaceIconOption> Options { get; } =
+        CreateOptions();
 
     public static string? ResolveBadge(
         string? workspaceName,
@@ -31,16 +42,26 @@ public static class WorkspaceIconCatalog
             return BadgeKeys.Contains(configured) ? configured : null;
         }
 
-        var first = workspaceName?
-            .Trim()
-            .FirstOrDefault(character => char.IsLetterOrDigit(character));
-        if (first is null || first == default(char))
+        if (string.IsNullOrWhiteSpace(workspaceName))
         {
             return null;
         }
 
-        var key = char.ToUpperInvariant(first.Value).ToString();
-        return BadgeKeys.Contains(key) ? key : null;
+        foreach (var character in workspaceName.Trim())
+        {
+            var key = char.ToUpperInvariant(character).ToString();
+            if (BadgeKeys.Contains(key))
+            {
+                return key;
+            }
+
+            if (character is >= '0' and <= '9')
+            {
+                return null;
+            }
+        }
+
+        return null;
     }
 
     public static ImageSource CreateImage(
@@ -168,4 +189,18 @@ public static class WorkspaceIconCatalog
         frame.Freeze();
         return frame;
     }
+
+    private static IReadOnlyList<WorkspaceIconOption> CreateOptions()
+    {
+        var options = new List<WorkspaceIconOption>
+        {
+            new(AutomaticKey, "自动（按工作区首字母或数字）"),
+            new(BaseIconKey, "默认 TC 图标"),
+        };
+        options.AddRange(OrderedBadgeKeys.Select(key =>
+            new WorkspaceIconOption(key, $"TC + 上标 {key}")));
+        return options.AsReadOnly();
+    }
 }
+
+public sealed record WorkspaceIconOption(string Key, string DisplayName);

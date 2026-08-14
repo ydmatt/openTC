@@ -457,7 +457,7 @@ public partial class FilePaneControl
             !Directory.Exists(ViewModel.CurrentPath) ||
             e.Data.GetData(DataFormats.FileDrop) is not string[] paths ||
             (!isRightDrag && FileDropGuards.IsSameDirectoryDrop(
-                ViewModel.CurrentPath,
+                GetDropDestinationDirectory(e),
                 paths)))
         {
             e.Effects = DragDropEffects.None;
@@ -465,11 +465,13 @@ public partial class FilePaneControl
             return;
         }
 
+        var destinationDirectory = GetDropDestinationDirectory(e);
+        var isFolderTarget = !FileDropGuards.IsSamePath(
+            ViewModel.CurrentPath,
+            destinationDirectory);
         e.Effects = isRightDrag
             ? DragDropEffects.Link
-            : (e.KeyStates & DragDropKeyStates.ShiftKey) != 0
-                ? DragDropEffects.Move
-                : DragDropEffects.Copy;
+            : GetLeftDropEffect(e.KeyStates, isFolderTarget);
         e.Handled = true;
     }
 
@@ -483,8 +485,9 @@ public partial class FilePaneControl
         }
 
         var isRightDrag = e.Data.GetDataPresent(RightDragDataFormat);
+        var destinationDirectory = GetDropDestinationDirectory(e);
         if (!isRightDrag && FileDropGuards.IsSameDirectoryDrop(
-                ViewModel.CurrentPath,
+                destinationDirectory,
                 paths))
         {
             e.Effects = DragDropEffects.None;
@@ -496,13 +499,65 @@ public partial class FilePaneControl
         if (isRightDrag)
         {
             e.Effects = DragDropEffects.Link;
-            await window.HandleRightFileDropAsync(ViewModel, paths);
+            await window.HandleRightFileDropAsync(
+                ViewModel,
+                paths,
+                destinationDirectory);
             return;
         }
 
-        var move = (e.KeyStates & DragDropKeyStates.ShiftKey) != 0;
+        var isFolderTarget = !FileDropGuards.IsSamePath(
+            ViewModel.CurrentPath,
+            destinationDirectory);
+        var move = GetLeftDropEffect(e.KeyStates, isFolderTarget) ==
+            DragDropEffects.Move;
         e.Effects = move ? DragDropEffects.Move : DragDropEffects.Copy;
-        await window.HandleFileDropAsync(ViewModel, paths, move);
+        await window.HandleFileDropAsync(
+            ViewModel,
+            paths,
+            move,
+            destinationDirectory: destinationDirectory);
+    }
+
+    private string GetDropDestinationDirectory(DragEventArgs e)
+    {
+        if (ViewModel is null)
+        {
+            return string.Empty;
+        }
+
+        var row = ItemsControl.ContainerFromElement(
+            FileGrid,
+            e.OriginalSource as DependencyObject) as DataGridRow;
+        var candidate = row?.DataContext is FileSystemEntry
+            {
+                Kind: EntryKind.Directory,
+                FullPath: var path,
+            }
+            ? path
+            : null;
+        return FileDropGuards.ResolveDropDirectory(
+            ViewModel.CurrentPath,
+            candidate);
+    }
+
+    private static DragDropEffects GetLeftDropEffect(
+        DragDropKeyStates keyStates,
+        bool isFolderTarget)
+    {
+        if ((keyStates & DragDropKeyStates.ControlKey) != 0)
+        {
+            return DragDropEffects.Copy;
+        }
+
+        if ((keyStates & DragDropKeyStates.ShiftKey) != 0)
+        {
+            return DragDropEffects.Move;
+        }
+
+        return isFolderTarget
+            ? DragDropEffects.Move
+            : DragDropEffects.Copy;
     }
 
     private void OnSorting(object sender, DataGridSortingEventArgs e)

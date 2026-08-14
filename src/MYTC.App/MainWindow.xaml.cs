@@ -1427,22 +1427,29 @@ public partial class MainWindow
         FilePaneViewModel destinationPane,
         IReadOnlyList<string> sourcePaths,
         bool move,
-        bool allowSameDirectory = false)
+        bool allowSameDirectory = false,
+        string? destinationDirectory = null)
     {
         if (ViewModel is null || ViewModel.IsOperationRunning)
         {
             return;
         }
 
+        destinationDirectory = FileDropGuards.ResolveDropDirectory(
+            destinationPane.CurrentPath,
+            destinationDirectory);
         if (!allowSameDirectory && FileDropGuards.IsSameDirectoryDrop(
-                destinationPane.CurrentPath,
+                destinationDirectory,
                 sourcePaths))
         {
             ViewModel.SetStatusMessage("源目录与目标目录相同，已取消拖放。");
             return;
         }
 
-        var behavior = ChooseCollisionBehavior(destinationPane, sourcePaths);
+        var behavior = ChooseCollisionBehavior(
+            destinationPane,
+            sourcePaths,
+            destinationDirectory);
         if (behavior is null)
         {
             return;
@@ -1460,7 +1467,8 @@ public partial class MainWindow
                 sourcePaths,
                 move ? FileOperationKind.Move : FileOperationKind.Copy,
                 behavior.Value,
-                sourcePane);
+                sourcePane,
+                destinationDirectory);
             ShowFailuresIfNeeded(result);
         }
         catch (Exception exception)
@@ -1471,7 +1479,8 @@ public partial class MainWindow
 
     public async Task HandleRightFileDropAsync(
         FilePaneViewModel destinationPane,
-        IReadOnlyList<string> sourcePaths)
+        IReadOnlyList<string> sourcePaths,
+        string? destinationDirectory = null)
     {
         if (ViewModel is null ||
             ViewModel.IsOperationRunning ||
@@ -1480,8 +1489,11 @@ public partial class MainWindow
             return;
         }
 
-        var isSameDirectory = FileDropGuards.IsSameDirectoryDrop(
+        destinationDirectory = FileDropGuards.ResolveDropDirectory(
             destinationPane.CurrentPath,
+            destinationDirectory);
+        var isSameDirectory = FileDropGuards.IsSameDirectoryDrop(
+            destinationDirectory,
             sourcePaths);
         var choice = await ShowRightDragMenuAsync(
             includeMove: !isSameDirectory);
@@ -1492,20 +1504,22 @@ public partial class MainWindow
                     destinationPane,
                     sourcePaths,
                     move: false,
-                    allowSameDirectory: true);
+                    allowSameDirectory: true,
+                    destinationDirectory: destinationDirectory);
                 break;
             case RightDragChoice.Move:
                 await HandleFileDropAsync(
                     destinationPane,
                     sourcePaths,
-                    move: true);
+                    move: true,
+                    destinationDirectory: destinationDirectory);
                 break;
             case RightDragChoice.CreateShortcut:
                 try
                 {
                     var created = await _shortcutCreationService.CreateAsync(
                         sourcePaths,
-                        destinationPane.CurrentPath);
+                        destinationDirectory);
                     await destinationPane.RefreshCurrentAsync();
                     ViewModel.SetStatusMessage(
                         $"已在目标窗格创建 {created.Count} 个快捷方式。");
@@ -2034,10 +2048,14 @@ public partial class MainWindow
 
     private CollisionBehavior? ChooseCollisionBehavior(
         FilePaneViewModel destinationPane,
-        IReadOnlyList<string> sourcePaths)
+        IReadOnlyList<string> sourcePaths,
+        string? destinationDirectory = null)
     {
         if (ViewModel is null ||
-            !ViewModel.HasTransferCollisions(destinationPane, sourcePaths))
+            !ViewModel.HasTransferCollisions(
+                destinationPane,
+                sourcePaths,
+                destinationDirectory))
         {
             return CollisionBehavior.Skip;
         }

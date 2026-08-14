@@ -259,6 +259,64 @@ public sealed class ManagedFileOperationServiceTests : IDisposable
     }
 
     [Fact]
+    public void ResolveDropDirectory_OnlyAcceptsDirectChildFolder()
+    {
+        var currentDirectory = CreateDirectory("drag-source");
+        var targetDirectory = Directory.CreateDirectory(
+            Path.Combine(currentDirectory, "target"));
+        var nestedDirectory = Directory.CreateDirectory(
+            Path.Combine(targetDirectory.FullName, "nested"));
+        var file = Path.Combine(currentDirectory, "file.txt");
+        File.WriteAllText(file, "file");
+
+        Assert.Equal(
+            targetDirectory.FullName,
+            FileDropGuards.ResolveDropDirectory(
+                currentDirectory,
+                targetDirectory.FullName));
+        Assert.Equal(
+            currentDirectory,
+            FileDropGuards.ResolveDropDirectory(
+                currentDirectory,
+                nestedDirectory.FullName));
+        Assert.Equal(
+            currentDirectory,
+            FileDropGuards.ResolveDropDirectory(
+                currentDirectory,
+                file));
+        Assert.True(FileDropGuards.IsSamePath(
+            currentDirectory,
+            currentDirectory + Path.DirectorySeparatorChar));
+    }
+
+    [Fact]
+    public async Task MoveMixedSelection_IntoSiblingFolder()
+    {
+        var currentDirectory = CreateDirectory("mixed-drag");
+        var targetDirectory = Directory.CreateDirectory(
+            Path.Combine(currentDirectory, "target"));
+        var sourceFolder = Directory.CreateDirectory(
+            Path.Combine(currentDirectory, "source-folder"));
+        var sourceFile = Path.Combine(currentDirectory, "source.txt");
+        await File.WriteAllTextAsync(sourceFile, "source");
+
+        var result = await _service.ExecuteAsync(
+            new FileOperationRequest(
+                FileOperationKind.Move,
+                [sourceFolder.FullName, sourceFile],
+                targetDirectory.FullName,
+                CollisionBehavior.Skip));
+
+        Assert.True(result.Succeeded);
+        Assert.False(Directory.Exists(sourceFolder.FullName));
+        Assert.False(File.Exists(sourceFile));
+        Assert.True(Directory.Exists(
+            Path.Combine(targetDirectory.FullName, "source-folder")));
+        Assert.True(File.Exists(
+            Path.Combine(targetDirectory.FullName, "source.txt")));
+    }
+
+    [Fact]
     public async Task ShellShortcutService_CreatesRealUniqueLinkFiles()
     {
         var sourceRoot = CreateDirectory("shortcut-source");

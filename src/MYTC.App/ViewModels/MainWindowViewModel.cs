@@ -352,8 +352,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     public bool HasTransferCollisions(
         FilePaneViewModel destinationPane,
-        IReadOnlyList<string> sourcePaths)
+        IReadOnlyList<string> sourcePaths,
+        string? destinationDirectory = null)
     {
+        var targetDirectory = destinationDirectory ?? destinationPane.CurrentPath;
         return sourcePaths.Any(source =>
         {
             var name = Path.GetFileName(source.TrimEnd('\\', '/'));
@@ -362,7 +364,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
                 return true;
             }
 
-            var destination = Path.Combine(destinationPane.CurrentPath, name);
+            var destination = Path.Combine(targetDirectory, name);
             return File.Exists(destination) || Directory.Exists(destination);
         });
     }
@@ -397,7 +399,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         IReadOnlyList<string> sourcePaths,
         FileOperationKind kind,
         CollisionBehavior collisionBehavior,
-        FilePaneViewModel? sourcePane = null)
+        FilePaneViewModel? sourcePane = null,
+        string? destinationDirectory = null)
     {
         if (sourcePaths.Count == 0)
         {
@@ -409,7 +412,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             new FileOperationRequest(
                 kind,
                 sourcePaths,
-                destinationPane.CurrentPath,
+                destinationDirectory ?? destinationPane.CurrentPath,
                 collisionBehavior));
         await RefreshAfterOperationAsync(sourcePane, destinationPane);
         return result;

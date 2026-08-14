@@ -299,6 +299,7 @@ public sealed class FilePaneViewModel : ObservableObject, IDisposable
 
         if (wasActive && !tab.IsFixed)
         {
+            await RefreshAsync();
             return;
         }
 

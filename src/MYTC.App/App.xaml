@@ -6,6 +6,7 @@
     <Application.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:ShellIconConverter x:Key="ShellIconConverter" />
+        <converters:DriveUsageBrushConverter x:Key="DriveUsageBrushConverter" />
 
         <SolidColorBrush x:Key="AppBackgroundBrush" Color="#EEF1F5" />
         <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />

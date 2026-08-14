@@ -23,6 +23,10 @@ public partial class FilePaneControl
     private int _keyboardSelectionCaretIndex = -1;
     private bool _applyingKeyboardSelection;
     private IReadOnlyList<int> _quickLocateMatchIndexes = [];
+    private IReadOnlyList<string> _dragSelectionPaths = [];
+    private bool _selectionMarqueeCandidate;
+    private bool _selectionMarqueeActive;
+    private Point _selectionMarqueeStart;
 
     public FilePaneControl()
     {
@@ -328,7 +332,7 @@ public partial class FilePaneControl
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!_applyingKeyboardSelection)
+        if (!_applyingKeyboardSelection && !_selectionMarqueeActive)
         {
             _keyboardSelectionAnchorIndex = FileGrid.SelectedIndex;
             _keyboardSelectionCaretIndex = FileGrid.SelectedIndex;
@@ -377,6 +381,31 @@ public partial class FilePaneControl
         MouseButtonEventArgs e)
     {
         _dragStart = e.GetPosition(FileGrid);
+        _dragSelectionPaths = [];
+        _selectionMarqueeCandidate = false;
+        _selectionMarqueeActive = false;
+
+        var row = ItemsControl.ContainerFromElement(
+            FileGrid,
+            e.OriginalSource as DependencyObject) as DataGridRow;
+        if (row?.IsSelected == true)
+        {
+            _dragSelectionPaths = FileGrid.SelectedItems
+                .OfType<FileSystemEntry>()
+                .Select(entry => entry.FullPath)
+                .ToArray();
+            return;
+        }
+
+        if (row is null && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            _selectionMarqueeCandidate = true;
+            _selectionMarqueeStart = _dragStart;
+            FileGrid.SelectedItems.Clear();
+            ViewModel?.SetSelectedItems([]);
+            FileGrid.CaptureMouse();
+            e.Handled = true;
+        }
     }
 
     private void OnFileGridMouseRightButtonDown(
@@ -394,11 +423,121 @@ public partial class FilePaneControl
 
         if (row.IsSelected)
         {
+            _dragSelectionPaths = FileGrid.SelectedItems
+                .OfType<FileSystemEntry>()
+                .Select(entry => entry.FullPath)
+                .ToArray();
             return;
         }
 
         FileGrid.SelectedItems.Clear();
         row.IsSelected = true;
+        _dragSelectionPaths = row.DataContext is FileSystemEntry entry
+            ? [entry.FullPath]
+            : [];
+    }
+
+    private void OnFileGridPreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_selectionMarqueeCandidate && !_selectionMarqueeActive)
+        {
+            return;
+        }
+
+        if (e.LeftButton != MouseButtonState.Pressed)
+        {
+            EndSelectionMarquee();
+            return;
+        }
+
+        var current = e.GetPosition(FileGrid);
+        if (!_selectionMarqueeActive &&
+            Math.Abs(current.X - _selectionMarqueeStart.X) <
+                SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(current.Y - _selectionMarqueeStart.Y) <
+                SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+
+        _selectionMarqueeActive = true;
+        _selectionMarqueeCandidate = false;
+        UpdateSelectionMarquee(current);
+        e.Handled = true;
+    }
+
+    private void OnFileGridPreviewMouseLeftButtonUp(
+        object sender,
+        MouseButtonEventArgs e)
+    {
+        if (_selectionMarqueeCandidate || _selectionMarqueeActive)
+        {
+            EndSelectionMarquee();
+            e.Handled = true;
+        }
+    }
+
+    private void UpdateSelectionMarquee(Point current)
+    {
+        var selection = NormalizeRectangle(_selectionMarqueeStart, current);
+        Canvas.SetLeft(SelectionRectangle, selection.Left);
+        Canvas.SetTop(SelectionRectangle, selection.Top);
+        SelectionRectangle.Width = selection.Width;
+        SelectionRectangle.Height = selection.Height;
+        SelectionRectangle.Visibility = Visibility.Visible;
+
+        _applyingKeyboardSelection = true;
+        try
+        {
+            FileGrid.SelectedItems.Clear();
+            foreach (var index in Enumerable.Range(0, FileGrid.Items.Count))
+            {
+                if (FileGrid.ItemContainerGenerator.ContainerFromIndex(index)
+                    is not DataGridRow row ||
+                    row.DataContext is not FileSystemEntry entry)
+                {
+                    continue;
+                }
+
+                var rowOrigin = row.TranslatePoint(new Point(0, 0), FileGrid);
+                var rowBounds = new Rect(rowOrigin, row.RenderSize);
+                if (selection.IntersectsWith(rowBounds))
+                {
+                    row.IsSelected = true;
+                }
+            }
+        }
+        finally
+        {
+            _applyingKeyboardSelection = false;
+        }
+
+        ViewModel?.SetSelectedItems(
+            FileGrid.SelectedItems.OfType<FileSystemEntry>());
+        _quickLocateMatchIndexes = [];
+    }
+
+    private void EndSelectionMarquee()
+    {
+        _selectionMarqueeCandidate = false;
+        _selectionMarqueeActive = false;
+        if (FileGrid.IsMouseCaptured)
+        {
+            FileGrid.ReleaseMouseCapture();
+        }
+
+        SelectionRectangle.Visibility = Visibility.Collapsed;
+        SelectionRectangle.Width = 0;
+        SelectionRectangle.Height = 0;
+    }
+
+    private static Rect NormalizeRectangle(Point first, Point second)
+    {
+        return new Rect(
+            Math.Min(first.X, second.X),
+            Math.Min(first.Y, second.Y),
+            Math.Abs(first.X - second.X),
+            Math.Abs(first.Y - second.Y));
     }
 
     private void OnFileGridContextMenuOpened(object sender, RoutedEventArgs e)
@@ -413,10 +552,31 @@ public partial class FilePaneControl
 
     private async void OnFileGridMouseMove(object sender, MouseEventArgs e)
     {
+        if (_selectionMarqueeCandidate || _selectionMarqueeActive)
+        {
+            return;
+        }
+
         var isLeftDrag = e.LeftButton == MouseButtonState.Pressed;
         var isRightDrag = e.RightButton == MouseButtonState.Pressed;
-        if ((!isLeftDrag && !isRightDrag) ||
-            ViewModel?.SelectedItems is not { Count: > 0 } selected)
+        if (!isLeftDrag && !isRightDrag)
+        {
+            return;
+        }
+
+        var viewModel = ViewModel;
+        if (viewModel is null)
+        {
+            return;
+        }
+
+        var selectedPaths = _dragSelectionPaths.Count > 0
+            ? _dragSelectionPaths
+            : FileGrid.SelectedItems
+                .OfType<FileSystemEntry>()
+                .Select(entry => entry.FullPath)
+                .ToArray();
+        if (selectedPaths.Count == 0)
         {
             return;
         }
@@ -429,7 +589,7 @@ public partial class FilePaneControl
         }
 
         var files = new System.Collections.Specialized.StringCollection();
-        files.AddRange(selected.Select(entry => entry.FullPath).ToArray());
+        files.AddRange(selectedPaths.ToArray());
         var data = new DataObject();
         data.SetFileDropList(files);
         if (isRightDrag)
@@ -445,8 +605,10 @@ public partial class FilePaneControl
                 DragDropEffects.Link);
         if (result == DragDropEffects.Move)
         {
-            await ViewModel.RefreshCurrentAsync();
+            await viewModel.RefreshCurrentAsync();
         }
+
+        _dragSelectionPaths = [];
     }
 
     private void OnFileGridDragOver(object sender, DragEventArgs e)

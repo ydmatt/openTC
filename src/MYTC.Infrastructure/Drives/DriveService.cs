@@ -14,6 +14,25 @@ public sealed class DriveService : IDriveService
             try
             {
                 var isReady = drive.IsReady;
+                long? totalSize = null;
+                long? availableFreeSpace = null;
+                if (isReady)
+                {
+                    try
+                    {
+                        totalSize = drive.TotalSize;
+                        availableFreeSpace = drive.AvailableFreeSpace;
+                    }
+                    catch (IOException)
+                    {
+                        // Keep the drive selectable even if capacity is unavailable.
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        // Keep the drive selectable even if capacity is unavailable.
+                    }
+                }
+
                 var label = isReady && !string.IsNullOrWhiteSpace(drive.VolumeLabel)
                     ? $" {drive.VolumeLabel}"
                     : string.Empty;
@@ -22,7 +41,9 @@ public sealed class DriveService : IDriveService
                     drive.RootDirectory.FullName,
                     $"{drive.Name.TrimEnd('\\')}{label}",
                     MapKind(drive.DriveType),
-                    isReady));
+                    isReady,
+                    totalSize,
+                    availableFreeSpace));
             }
             catch (IOException)
             {

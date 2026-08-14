@@ -124,8 +124,9 @@ public sealed class MainWindowSmokeTests
                 var openWithService = new RecordingOpenWithService();
                 var propertiesService = new RecordingPropertiesService();
                 var archiveExtractionService = new RecordingArchiveExtractionService();
+                var listingService = new FakeListingService();
                 var viewModel = new MainWindowViewModel(
-                    new FakeListingService(),
+                    listingService,
                     new FakeDriveService(sandbox),
                     new ShellFileLauncher(),
                     new ManagedFileOperationService(),
@@ -181,6 +182,14 @@ public sealed class MainWindowSmokeTests
                         await window.InitializeSettingsAsync();
                         await viewModel.InitializeAsync();
                         window.UpdateLayout();
+
+                        var refreshCountBeforeTabActivation =
+                            listingService.CallCount;
+                        await viewModel.Panes[0].SelectTabAsync(
+                            viewModel.Panes[0].ActiveTab);
+                        Assert.True(
+                            listingService.CallCount >
+                            refreshCountBeforeTabActivation);
 
                         Assert.Equal(4, viewModel.Panes.Count);
                         Assert.Equal(
@@ -1057,11 +1066,14 @@ public sealed class MainWindowSmokeTests
 
     private sealed class FakeListingService : IDirectoryListingService
     {
+        public int CallCount { get; private set; }
+
         public Task<IReadOnlyList<FileSystemEntry>> ListAsync(
             string path,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
             if (!Directory.Exists(path))
             {
                 throw new DirectoryNotFoundException(path);

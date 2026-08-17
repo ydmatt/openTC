@@ -114,8 +114,8 @@ public partial class MainWindow
             workspaceName,
             configuredIconKey);
         Title = string.IsNullOrWhiteSpace(workspaceName)
-            ? "MYTC"
-            : $"MYTC - {workspaceName}";
+            ? "openTC"
+            : $"openTC - {workspaceName}";
         _ = TaskbarIdentity.TryApplyWindowProperties(this, workspaceName);
     }
 
@@ -1215,7 +1215,7 @@ public partial class MainWindow
             MessageBox.Show(
                 this,
                 "当前程序目录缺少 MYTC.Maintenance.exe。\n\n" +
-                "请使用完整的 MYTC 生产发布包。",
+                "请使用完整的 openTC 生产发布包。",
                 "无法启动 Win+E 设置工具",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -1268,8 +1268,8 @@ public partial class MainWindow
         var updateDirectory = @"T:\mytc-updates";
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "选择 MYTC 升级包",
-            Filter = "MYTC 升级包 (*.zip)|*.zip",
+            Title = "选择 openTC 升级包",
+            Filter = "openTC 升级包 (*.zip)|*.zip",
             CheckFileExists = true,
             Multiselect = false,
             InitialDirectory = Directory.Exists(updateDirectory)
@@ -1306,9 +1306,9 @@ public partial class MainWindow
                 $"升级包已通过完整性校验。\n\n" +
                 $"当前版本：{currentVersion}\n" +
                 $"目标版本：{prepared.Version}\n\n" +
-                "升级时 MYTC 会自动退出，外部更新器将备份旧程序、保留 data 配置目录，完成后自动重启。\n\n" +
+                "升级时 openTC 会自动退出，外部更新器将备份旧程序、保留 data 配置目录，完成后自动重启。\n\n" +
                 "现在开始升级吗？",
-                "确认升级 MYTC",
+                "确认升级 openTC",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question,
                 MessageBoxResult.No);
@@ -1324,7 +1324,7 @@ public partial class MainWindow
             if (!File.Exists(maintenancePath))
             {
                 throw new FileNotFoundException(
-                    "当前程序目录缺少 MYTC.Maintenance.exe，无法安全执行就地升级。",
+                    "当前程序目录缺少 openTC 维护工具（兼容文件名 MYTC.Maintenance.exe），无法安全执行就地升级。",
                     maintenancePath);
             }
 
@@ -1358,10 +1358,10 @@ public partial class MainWindow
                     System.Globalization.CultureInfo.InvariantCulture));
             _ = Process.Start(startInfo)
                 ?? throw new InvalidOperationException(
-                    "无法启动 MYTC 外部更新器。");
+                    "无法启动 openTC 外部更新器。");
 
             handedOffToUpdater = true;
-            ViewModel?.SetStatusMessage("升级器已启动，正在退出 MYTC…");
+            ViewModel?.SetStatusMessage("升级器已启动，正在退出 openTC…");
             Close();
         }
         catch (Exception exception)
@@ -1390,8 +1390,8 @@ public partial class MainWindow
             .ToString(3) ?? "未知";
         MessageBox.Show(
             this,
-            $"MYTC v{version}\nWindows 10/11 四窗格绿色资源管理器",
-            "关于 MYTC",
+            $"openTC v{version}\nWindows 10/11 开源四窗格绿色资源管理器\n受 Total Commander 启发，本项目与其无隶属关系。",
+            "关于 openTC",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
     }
@@ -1594,7 +1594,7 @@ public partial class MainWindow
             MessageBox.Show(
                 this,
                 "请先在活动窗格中选择文件或文件夹。",
-                "MYTC",
+                "openTC",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
             return;
@@ -1724,7 +1724,7 @@ public partial class MainWindow
             MessageBox.Show(
                 this,
                 "重命名时请只选择一个项目。",
-                "MYTC",
+            "openTC",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
             return;
@@ -1776,7 +1776,7 @@ public partial class MainWindow
             MessageBox.Show(
                 this,
                 "请先选择要删除的项目。",
-                "MYTC",
+            "openTC",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
             RestoreFileGridFocus(focusTarget);
@@ -2209,7 +2209,7 @@ public partial class MainWindow
         var picker = new OpenFileDialog
         {
             Title = "导入工作区方案",
-            Filter = "MYTC 工作区 (*.json)|*.json|所有文件 (*.*)|*.*",
+            Filter = "openTC 工作区 (*.json)|*.json|所有文件 (*.*)|*.*",
             CheckFileExists = true,
             Multiselect = false,
         };
@@ -2248,7 +2248,7 @@ public partial class MainWindow
         var picker = new SaveFileDialog
         {
             Title = "导出工作区方案",
-            Filter = "MYTC 工作区 (*.json)|*.json",
+            Filter = "openTC 工作区 (*.json)|*.json",
             DefaultExt = ".json",
             AddExtension = true,
             FileName = $"{e.WorkspaceName}.json",

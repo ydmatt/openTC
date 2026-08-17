@@ -51,7 +51,7 @@ public partial class TextInputDialog
             MessageBox.Show(
                 this,
                 "名称不能为空。",
-                "MYTC",
+                "openTC",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
             ValueTextBox.Focus();

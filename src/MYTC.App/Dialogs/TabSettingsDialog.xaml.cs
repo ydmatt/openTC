@@ -55,7 +55,7 @@ public partial class TabSettingsDialog
             MessageBox.Show(
                 this,
                 "固定目录不存在或当前不可访问。",
-                "MYTC",
+                "openTC",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             FixedPathTextBox.Focus();

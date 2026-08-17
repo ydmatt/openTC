@@ -34,7 +34,7 @@ public sealed class ShellRecycleBinRestoreService : IRecycleBinRestoreService
         })
         {
             IsBackground = true,
-            Name = "MYTC Recycle Bin Restore",
+            Name = "openTC Recycle Bin Restore",
         };
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();

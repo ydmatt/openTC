@@ -65,7 +65,7 @@ public sealed class ManagedNetworkRecycleService : IManagedRecycleService
                 if (IsSameOrDescendant(originalPath, recycleRoot))
                 {
                     throw new InvalidOperationException(
-                        "不能将 MYTC 回收区本身再次移入回收区。");
+                        "不能将 openTC 回收区本身再次移入回收区。");
                 }
 
                 var leafName = Path.GetFileName(
@@ -135,7 +135,7 @@ public sealed class ManagedNetworkRecycleService : IManagedRecycleService
                 if (!IsSameOrDescendant(storedPath, recycleRoot))
                 {
                     throw new InvalidOperationException(
-                        "回收项目不属于已记录的 MYTC 回收区。");
+                        "回收项目不属于已记录的 openTC 回收区。");
                 }
 
                 if (File.Exists(originalPath) ||
@@ -164,7 +164,7 @@ public sealed class ManagedNetworkRecycleService : IManagedRecycleService
                 else
                 {
                     throw new FileNotFoundException(
-                        "MYTC 回收区中找不到对应项目。",
+                "openTC 回收区中找不到对应项目。",
                         storedPath);
                 }
 

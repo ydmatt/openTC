@@ -24,7 +24,7 @@
         <CheckBox x:Name="StartWithWindowsCheckBox"
                   Grid.Row="1"
                   Margin="0,18,0,0"
-                  Content="登录 Windows 后自动启动 MYTC" />
+                  Content="登录 Windows 后自动启动 openTC" />
         <CheckBox x:Name="ConfirmRecycleDeleteCheckBox"
                   Grid.Row="2"
                   Margin="0,15,0,0"

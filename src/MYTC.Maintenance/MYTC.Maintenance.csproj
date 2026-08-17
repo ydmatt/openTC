@@ -5,10 +5,12 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>MYTC.Maintenance</AssemblyName>
     <RootNamespace>MYTC.Maintenance</RootNamespace>
-    <Version>1.0.24</Version>
-    <AssemblyVersion>1.0.24.0</AssemblyVersion>
-    <FileVersion>1.0.24.0</FileVersion>
-    <Product>MYTC 维护、Win+E 桥接与升级工具</Product>
+    <Version>1.0.25</Version>
+    <AssemblyVersion>1.0.25.0</AssemblyVersion>
+    <FileVersion>1.0.25.0</FileVersion>
+    <AssemblyTitle>openTC Maintenance</AssemblyTitle>
+    <Product>openTC 维护、Win+E 桥接与升级工具</Product>
+    <Description>openTC 的 Win+E 桥接、维护和便携升级工具。</Description>
     <ApplicationIcon>..\MYTC.App\Assets\mytc.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>

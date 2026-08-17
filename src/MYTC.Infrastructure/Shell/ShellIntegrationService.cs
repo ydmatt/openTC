@@ -63,12 +63,12 @@ public sealed class ShellIntegrationService
 
         var registeredPath = ParseExecutableFromCommand(command);
         var description = folderDefault && bridgeEnabled
-            ? "检测到旧版文件夹接管；请启动 MYTC 或点击“启用 Win+E 启动 MYTC”完成迁移。"
+            ? "检测到旧版文件夹接管；请启动 openTC 或点击“启用 Win+E 启动 openTC”完成迁移。"
             : folderDefault
                 ? "检测到旧版文件夹接管；Win+E 桥接未启用。"
                 : bridgeEnabled
-                    ? "Win+E 会启动 MYTC；资源管理器中的文件夹仍由 Windows 资源管理器打开。"
-                    : "Windows 资源管理器保持默认；Win+E 未配置为启动 MYTC。";
+                    ? "Win+E 会启动 openTC；资源管理器中的文件夹仍由 Windows 资源管理器打开。"
+                    : "Windows 资源管理器保持默认；Win+E 未配置为启动 openTC。";
         return new ShellIntegrationStatus(
             folderDefault,
             bridgeEnabled,
@@ -83,7 +83,7 @@ public sealed class ShellIntegrationService
         var fullExecutable = Path.GetFullPath(executablePath);
         var fullMaintenance = Path.GetFullPath(maintenancePath);
         var installRoot = Path.GetDirectoryName(fullExecutable)
-            ?? throw new InvalidOperationException("无法识别 MYTC 程序目录。");
+            ?? throw new InvalidOperationException("无法识别 openTC 程序目录。");
 
         if (!InstallationPathPolicy.IsSupportedFixedLocalPath(
                 installRoot,
@@ -95,14 +95,14 @@ public sealed class ShellIntegrationService
         if (!File.Exists(fullExecutable))
         {
             throw new FileNotFoundException(
-                "找不到 MYTC.exe。",
+                "找不到 openTC 主程序（兼容文件名 MYTC.exe）。",
                 fullExecutable);
         }
 
         if (!File.Exists(fullMaintenance))
         {
             throw new FileNotFoundException(
-                "找不到 MYTC.Maintenance.exe。",
+                "找不到 openTC 维护工具（兼容文件名 MYTC.Maintenance.exe）。",
                 fullMaintenance);
         }
 
@@ -438,7 +438,7 @@ public sealed class ShellIntegrationService
         {
             verb.SetValue(
                 string.Empty,
-                "在 MYTC 中打开",
+                "在 openTC 中打开",
                 RegistryValueKind.String);
             verb.SetValue(
                 "Icon",
@@ -466,7 +466,7 @@ public sealed class ShellIntegrationService
             !Equals(key.GetValue(ManagedValueName), 1))
         {
             throw new InvalidOperationException(
-                $"注册表中已存在非 MYTC 管理的 {ShellIntegrationConstants.VerbName} 项；为避免覆盖，已停止注册。");
+                $"注册表中已存在非 openTC 管理的 {ShellIntegrationConstants.VerbName} 项；为避免覆盖，已停止注册。");
         }
     }
 

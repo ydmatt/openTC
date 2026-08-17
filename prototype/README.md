@@ -1,4 +1,4 @@
-# MYTC 交互原型
+# openTC 交互原型
 
 直接双击 `index.html`，或用浏览器打开。
 

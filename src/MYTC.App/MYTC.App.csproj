@@ -5,10 +5,12 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>MYTC</AssemblyName>
     <RootNamespace>MYTC.App</RootNamespace>
-    <Version>1.0.24</Version>
-    <AssemblyVersion>1.0.24.0</AssemblyVersion>
-    <FileVersion>1.0.24.0</FileVersion>
-    <Product>MYTC 四窗格资源管理器</Product>
+    <Version>1.0.25</Version>
+    <AssemblyVersion>1.0.25.0</AssemblyVersion>
+    <FileVersion>1.0.25.0</FileVersion>
+    <AssemblyTitle>openTC</AssemblyTitle>
+    <Product>openTC 开源四窗格资源管理器</Product>
+    <Description>openTC：受 Total Commander 启发的 Windows 开源四窗格文件管理器。</Description>
     <ApplicationIcon>Assets\mytc.ico</ApplicationIcon>
   </PropertyGroup>
 

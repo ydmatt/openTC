@@ -49,8 +49,8 @@ internal static class Program
         catch (Exception exception)
         {
             MessageBox.Show(
-                $"MYTC 维护工具发生错误：\n\n{exception.Message}",
-                "MYTC 维护工具",
+                $"openTC 维护工具发生错误：\n\n{exception.Message}",
+                "openTC 维护工具",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
             return 1;

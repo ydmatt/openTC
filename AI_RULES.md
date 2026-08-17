@@ -1,4 +1,4 @@
-# AI_RULES
+# AI_RULES — openTC
 
 ## 1. 范围
 

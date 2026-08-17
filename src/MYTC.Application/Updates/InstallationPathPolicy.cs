@@ -30,7 +30,7 @@ public static class InstallationPathPolicy
 
         if (fullPath.StartsWith(@"\\", StringComparison.Ordinal))
         {
-            reason = "程序位于网络共享路径。请先复制到本机固定磁盘，例如 E:\\port\\MYTC。";
+            reason = "程序位于网络共享路径。请先复制到本机固定磁盘，例如 E:\\port\\openTC。";
             return false;
         }
 

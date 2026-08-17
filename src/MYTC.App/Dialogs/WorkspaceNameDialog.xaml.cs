@@ -26,7 +26,7 @@ public partial class WorkspaceNameDialog
             MessageBox.Show(
                 this,
                 "请输入工作区名称。",
-                "MYTC",
+                "openTC",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
             NameTextBox.Focus();

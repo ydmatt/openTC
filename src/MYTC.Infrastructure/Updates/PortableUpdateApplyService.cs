@@ -29,7 +29,7 @@ public sealed class PortableUpdateApplyService
 
         var log = new List<string>
         {
-            $"{DateTimeOffset.Now:O} 开始应用 MYTC 升级。",
+            $"{DateTimeOffset.Now:O} 开始应用 openTC 升级。",
             $"安装目录：{fullInstallRoot}",
             $"暂存目录：{fullStagedRoot}",
             $"备份目录：{backupRoot}",

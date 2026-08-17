@@ -1,5 +1,13 @@
 # PROJECT_MEMORY
 
+## 2026-08-17 openTC 品牌迁移与公开预检
+
+- 产品可见品牌统一改为 `openTC`，定位为受 Total Commander 启发的独立开源四窗格文件管理器；README、窗口、菜单、关于对话框、维护工具、升级提示和包装说明已同步。
+- 为兼容旧用户，保留解决方案/项目命名空间、`MYTC.exe`、`MYTC.Maintenance.exe`、`MYTC.update.json`、`data/`、Win+E 注册、任务栏身份和内部互斥标识。发布目录名改为 `openTC-v1.0.25-win-x64`。
+- 新增 `CONTRIBUTING.md`、`SECURITY.md`、`NOTICE.md` 和 `docs/PUBLIC-RELEASE-CHECKLIST.md`。
+- GitHub `ydmatt/MyTC` 已准备更新描述和主题，但本次不自动改仓库名、不自动切换 Public；许可证选择、历史文档脱敏和最终公开动作仍需用户确认。
+- Release 测试 85/85 通过；v1.0.25 发布包独立启动/单实例转发与外部更新器黑盒测试通过。发布 ZIP 已投递到 `T:\mytc-updates\openTC-v1.0.25-win-x64.zip`，SHA-256 为 `99A43931B11BBB63FA4924308FEC498F7EF946EC03370BAA48FE6EE68D65BF15`；包内主程序和维护程序文件版本均为 `1.0.25.0`，共 407 个文件且不含 `data/`。
+
 ## 2026-08-14 v1.0.24
 
 - 激活任意标签会重新读取当前目录；再次点击当前已激活的普通标签也会刷新，固定标签仍按固定路径导航并刷新。

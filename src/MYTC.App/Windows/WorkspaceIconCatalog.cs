@@ -177,7 +177,7 @@ public static class WorkspaceIconCatalog
                 "pack://application:,,,/MYTC;component/Assets/mytc.ico",
                 UriKind.Absolute))
             ?? throw new InvalidOperationException(
-                "无法加载 MYTC 基础图标资源。");
+                "无法加载 openTC 基础图标资源。");
         using var stream = resource.Stream;
         var decoder = new IconBitmapDecoder(
             stream,

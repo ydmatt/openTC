@@ -78,7 +78,7 @@ public static class TaskbarIdentity
                 TrySetString(
                     propertyStore,
                     RelaunchDisplayNameKey,
-                    "MYTC 四窗格资源管理器") &&
+                    "openTC 开源四窗格资源管理器") &&
                 TrySetString(
                     propertyStore,
                     RelaunchIconKey,

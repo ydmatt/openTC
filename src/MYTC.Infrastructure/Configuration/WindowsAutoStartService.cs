@@ -36,7 +36,7 @@ public sealed class WindowsAutoStartService : IAutoStartService
         var executable = Environment.ProcessPath;
         if (string.IsNullOrWhiteSpace(executable))
         {
-            throw new InvalidOperationException("无法确定 MYTC 程序路径。");
+            throw new InvalidOperationException("无法确定 openTC 程序路径。");
         }
 
         return $"\"{executable}\"";

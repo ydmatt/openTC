@@ -1,5 +1,14 @@
 # HANDOVER
 
+## 2026-08-17 openTC 品牌迁移
+
+- 当前产品品牌为 openTC，GitHub 仓库仍为私密的 `ydmatt/MyTC`。
+- 这是兼容性优先的品牌迁移：可执行文件、升级清单、数据目录和内部注册标识暂时仍使用 MYTC 名称。
+- 公开仓库准备文档见 `docs/PUBLIC-RELEASE-CHECKLIST.md`；许可证、历史文档脱敏、仓库改名和可见性切换必须由用户确认后再执行。
+
+- Release 测试 85/85 通过；v1.0.25 主程序和维护程序文件版本均为 `1.0.25.0`，发布包 407 个文件且不含 `data`。
+- 升级 ZIP：`T:\mytc-updates\openTC-v1.0.25-win-x64.zip`；SHA-256：`99A43931B11BBB63FA4924308FEC498F7EF946EC03370BAA48FE6EE68D65BF15`。
+
 ## v1.0.24
 
 - `FilePaneViewModel.SelectTabAsync` 在激活标签（包括再次点击当前标签）时重新执行目录读取；固定标签仍先回到固定路径。

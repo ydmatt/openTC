@@ -107,7 +107,7 @@ public sealed class PortableUpdatePackageService
                 manifest.ProductId,
                 PortableUpdateConstants.ProductId))
         {
-            throw new InvalidDataException("所选 ZIP 不是 MYTC 升级包。");
+            throw new InvalidDataException("所选 ZIP 不是 openTC 升级包。");
         }
 
         if (!StringComparer.OrdinalIgnoreCase.Equals(

@@ -70,7 +70,7 @@ internal static class UpdaterMode
                 MessageBox.Show(
                     "升级失败，已尝试恢复原版本。\n\n" +
                     $"{result.ErrorMessage}\n\n日志：{result.LogPath}",
-                    "MYTC 升级失败",
+                    "openTC 升级失败",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
                 RestartMainApplication(installRoot);
@@ -197,7 +197,7 @@ internal static class UpdaterMode
             catch (OperationCanceledException)
             {
                 throw new TimeoutException(
-                    "等待 MYTC 退出超时。请关闭正在运行的 MYTC 后重试升级。");
+                    "等待 openTC 退出超时。请关闭正在运行的 openTC 后重试升级。");
             }
         }
     }
@@ -229,7 +229,7 @@ internal static class UpdaterMode
         }
 
         throw new IOException(
-            "安装目录中的 MYTC 维护/Win+E 桥接进程仍未退出。请关闭维护工具后重试；不要强行覆盖。");
+            "安装目录中的 openTC 维护/Win+E 桥接进程仍未退出。请关闭维护工具后重试；不要强行覆盖。");
     }
 
     private static bool IsProcessInside(Process process, string fullRoot)

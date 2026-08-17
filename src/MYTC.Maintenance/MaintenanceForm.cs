@@ -18,7 +18,7 @@ internal sealed class MaintenanceForm : Form
         _maintenancePath = Environment.ProcessPath
             ?? Path.Combine(_installRoot, "MYTC.Maintenance.exe");
 
-        Text = "配置 Win+E 启动 MYTC";
+        Text = "配置 Win+E 启动 openTC";
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(650, 330);
         MinimumSize = new Size(650, 330);
@@ -30,7 +30,7 @@ internal sealed class MaintenanceForm : Form
             AutoSize = true,
             Font = new Font(Font, FontStyle.Bold),
             Location = new Point(24, 22),
-            Text = "配置 Win+E 启动 MYTC",
+            Text = "配置 Win+E 启动 openTC",
         };
         var explanation = new Label
         {
@@ -41,7 +41,7 @@ internal sealed class MaintenanceForm : Form
                 "此工具只为当前 Windows 用户配置轻量 Win+E 桥接程序。" +
                 "资源管理器中的文件夹双击和 Enter 始终保留给 Windows 资源管理器。" +
                 "它不会替换 explorer.exe，也不会接管桌面、任务栏或登录外壳。\r\n\r\n" +
-                "程序应先放在固定的本机磁盘目录，例如 E:\\port\\MYTC；注册后不要移动该目录。",
+                "程序应先放在固定的本机磁盘目录，例如 E:\\port\\openTC；注册后不要移动该目录。",
         };
         var pathLabel = new Label
         {
@@ -62,7 +62,7 @@ internal sealed class MaintenanceForm : Form
         {
             Location = new Point(24, 252),
             Size = new Size(245, 42),
-            Text = "启用 Win+E 启动 MYTC",
+            Text = "启用 Win+E 启动 openTC",
         };
         _restoreButton = new Button
         {
@@ -97,7 +97,7 @@ internal sealed class MaintenanceForm : Form
     {
         var confirmation = MessageBox.Show(
             this,
-            "确认让 Win+E 启动 MYTC 吗？\n\n" +
+            "确认让 Win+E 启动 openTC 吗？\n\n" +
             "资源管理器中的文件夹双击和 Enter 不会受影响，仍由 Windows 资源管理器打开。",
             "确认启用 Win+E",
             MessageBoxButtons.YesNo,
@@ -112,14 +112,14 @@ internal sealed class MaintenanceForm : Form
             () => _shellIntegration.Register(
                 _mytcPath,
                 _maintenancePath),
-            "配置完成。Win+E 将启动 MYTC；资源管理器内的文件夹仍由 Windows 资源管理器打开。");
+            "配置完成。Win+E 将启动 openTC；资源管理器内的文件夹仍由 Windows 资源管理器打开。");
     }
 
     private void Restore()
     {
         var confirmation = MessageBox.Show(
             this,
-            "确认停用 Win+E 启动 MYTC 吗？\n\n" +
+            "确认停用 Win+E 启动 openTC 吗？\n\n" +
             "资源管理器中的文件夹打开方式不会被修改。",
             "确认停用 Win+E",
             MessageBoxButtons.YesNo,
@@ -148,7 +148,7 @@ internal sealed class MaintenanceForm : Form
             MessageBox.Show(
                 this,
                 successMessage,
-                "MYTC 维护工具",
+                "openTC 维护工具",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
         }

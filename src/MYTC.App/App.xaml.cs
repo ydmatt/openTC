@@ -41,8 +41,8 @@ public partial class App
             if (!delivered)
             {
                 MessageBox.Show(
-                    "MYTC 已在运行，但本次目录请求未能转交给现有窗口。请切换到现有窗口后重试。",
-                    "MYTC",
+                    "openTC 已在运行，但本次目录请求未能转交给现有窗口。请切换到现有窗口后重试。",
+                    "openTC",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
@@ -165,9 +165,9 @@ public partial class App
                     window.Focus();
                     MessageBox.Show(
                         window,
-                        $"MYTC 已升级到 {completedUpdateVersion}。\n\n" +
+                        $"openTC 已升级到 {completedUpdateVersion}。\n\n" +
                         "用户配置目录 data 未被覆盖。",
-                        "MYTC 升级完成",
+                        "openTC 升级完成",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
                 }));

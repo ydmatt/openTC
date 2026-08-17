@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.0.24",
+    [string]$Version = "1.0.25",
     [string]$UpdateDrop = ""
 )
 
@@ -11,7 +11,7 @@ $projectRoot = [System.IO.Path]::GetFullPath(
 $artifactsRoot = Join-Path $projectRoot "artifacts"
 $stagingRoot = Join-Path $artifactsRoot "staging"
 $releaseRoot = Join-Path $artifactsRoot "release"
-$packageName = "MYTC-v$Version-win-x64"
+$packageName = "openTC-v$Version-win-x64"
 $packageRoot = Join-Path $stagingRoot $packageName
 $maintenancePublish = Join-Path $stagingRoot "maintenance-single-file"
 $archivePath = Join-Path $releaseRoot "$packageName.zip"
@@ -52,7 +52,7 @@ New-Item -ItemType Directory -Path $releaseRoot -Force | Out-Null
     -p:FileVersion="$Version.0" `
     -o $packageRoot
 if ($LASTEXITCODE -ne 0) {
-    throw "MYTC application publish failed."
+    throw "openTC application publish failed."
 }
 
 & $dotnet publish `
@@ -68,7 +68,7 @@ if ($LASTEXITCODE -ne 0) {
     -p:FileVersion="$Version.0" `
     -o $maintenancePublish
 if ($LASTEXITCODE -ne 0) {
-    throw "MYTC maintenance tool publish failed."
+    throw "openTC maintenance tool publish failed."
 }
 
 $maintenanceExecutable = Join-Path $maintenancePublish "MYTC.Maintenance.exe"
@@ -113,6 +113,7 @@ $manifestFiles = @(
 $manifest = [ordered]@{
     schemaVersion = 1
     productId = "MYTC"
+    productName = "openTC"
     version = $Version
     architecture = "win-x64"
     files = $manifestFiles

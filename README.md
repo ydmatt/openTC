@@ -6,6 +6,8 @@ openTC 是独立项目，与 Total Commander 没有隶属、授权或商标关�
 
 GitHub：[ydmatt/openTC](https://github.com/ydmatt/openTC)（Public）。
 
+许可证：[MIT License](LICENSE)。
+
 ## 主要场景
 
 - 标书工作：同时打开项目、素材、临时文件和 AI 生成文件等目录，在窗格之间频繁查看、打开、复制和移动。

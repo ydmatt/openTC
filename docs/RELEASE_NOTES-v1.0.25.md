@@ -7,6 +7,7 @@
 - 为保护现有用户的绿色升级和配置，保留 `MYTC.exe`、`MYTC.Maintenance.exe`、`MYTC.update.json`、`data/`、注册表备份和内部互斥标识。
 - 发布包目录名改为 `openTC-v1.0.25-win-x64`；包内兼容文件名暂不变。
 - 新增贡献指南、安全策略、项目说明和公开发布清单。
+- GitHub 仓库已改名为 `ydmatt/openTC` 并切换为 Public。
 
 ## 兼容性说明
 

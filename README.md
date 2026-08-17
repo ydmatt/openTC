@@ -4,6 +4,8 @@ openTC 是一个面向 Windows 10/11 的开源高效率多窗格资源管理器�
 
 openTC 是独立项目，与 Total Commander 没有隶属、授权或商标关系；“Total Commander”仅用于说明设计灵感和兼容的操作习惯。项目原名为 MYTC，为保证既有用户的绿色升级、工作区数据、Win+E 注册和任务栏固定项兼容，当前版本保留旧的内部程序集和可执行文件名，界面与发布品牌统一使用 openTC。
 
+GitHub：[ydmatt/openTC](https://github.com/ydmatt/openTC)（Public）。
+
 ## 主要场景
 
 - 标书工作：同时打开项目、素材、临时文件和 AI 生成文件等目录，在窗格之间频繁查看、打开、复制和移动。
@@ -44,7 +46,7 @@ openTC 是独立项目，与 Total Commander 没有隶属、授权或商标关�
 
 ## 当前状态
 
-生产修订版 `v1.0.25` 正在进行品牌迁移和公开仓库预检。当前生产线保留 `Win+E` 启动 openTC，但不再接管 Windows 资源管理器内部的文件夹打开方式：
+生产修订版 `v1.0.25` 已完成品牌迁移，GitHub 仓库已公开。当前生产线保留 `Win+E` 启动 openTC，但不再接管 Windows 资源管理器内部的文件夹打开方式：
 
 - 映射共享盘和 UNC 路径不再依赖不可用的 Windows 回收站；普通删除改为移动到同一共享上的隐藏 `.MYTC-RecycleBin`，当前会话可可靠撤销。
 - `Backspace` 返回上级目录或 `Enter` 进入文件夹后，即使刷新夺走焦点，无修饰键 `↑` / `↓` / `Enter` / `Backspace` 会持续回到刚才的文件窗格；不会只响应第一下按键。
@@ -84,9 +86,9 @@ openTC 是独立项目，与 Total Commander 没有隶属、授权或商标关�
 - 发布版黑盒测试确认第二实例目录请求转交主窗口、正常关闭保存目标目录；成品 Win+E 钩子能安装并由恢复信号退出。
 - 外部更新器黑盒模拟升级：返回 0，完整替换、旧版备份、日志、`data` 保留和更新器临时宿主清理均通过。
 - 自包含绿色版已在 Windows 10 上成功启动，不依赖系统预装 .NET；发布包不含 `data`。
-- v1.0.24 主程序和维护程序文件版本均为 `1.0.24.0`；升级 ZIP 的最终投递路径和 SHA-256 记录在 `PROJECT_MEMORY.md`。
+- v1.0.25 主程序和维护程序文件版本均为 `1.0.25.0`；升级 ZIP 的最终投递路径和 SHA-256 记录在 `PROJECT_MEMORY.md`。
 
-使用方法见 [用户使用说明](docs/USER_GUIDE.md)。新贡献者请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)；公开仓库前的逐项检查见 [公开发布清单](docs/PUBLIC-RELEASE-CHECKLIST.md)。
+使用方法见 [用户使用说明](docs/USER_GUIDE.md)。新贡献者请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)；公开仓库维护清单见 [公开发布清单](docs/PUBLIC-RELEASE-CHECKLIST.md)。
 
 ## 设计与原型
 
